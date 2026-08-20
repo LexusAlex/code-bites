@@ -1,0 +1,21 @@
+services:
+  codebites:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /workspace
+    init: true
+    ports:
+      - "127.0.0.1:${APP_PORT:-5173}:5173"
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "250"
+      NODE_ENV: development
+    volumes:
+      - .:/workspace
+      - node_modules:/workspace/node_modules
+      - npm_cache:/root/.npm
+
+volumes:
+  node_modules:
+  npm_cache:

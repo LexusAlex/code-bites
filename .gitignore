@@ -1,0 +1,10 @@
+.plan/
+node_modules/
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+coverage/
+*.log
+.env
+.env.local
+.DS_Store
+Thumbs.db
