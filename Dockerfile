@@ -1,5 +1,11 @@
 FROM node:24-alpine
 
+RUN apk add --no-cache git
+
+ENV GIT_CONFIG_COUNT=1 \
+    GIT_CONFIG_KEY_0=safe.directory \
+    GIT_CONFIG_VALUE_0=/workspace
+
 WORKDIR /workspace
 
 ENV NODE_ENV=development \
