@@ -20,4 +20,10 @@ updated: "2026-08-22"
 sudo useradd --create-home --shell /bin/bash --comment "crm8" crm8
 ```
 
-`--create-home` создаёт `/home/crm8`, `--shell` задаёт оболочку входа, `--comment` — произвольное описание. Пароль задаётся отдельно: `sudo passwd crm8`.
+`--create-home` создаёт `/home/crm8`, `--shell` задаёт оболочку входа, `--comment` — произвольное описание. 
+
+Далее задается пароль: 
+
+```bash
+sudo passwd crm8
+```
