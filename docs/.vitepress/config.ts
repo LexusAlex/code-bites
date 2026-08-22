@@ -1,88 +1,4 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { join, relative } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-import matter from 'gray-matter'
 import { defineConfig } from 'vitepress'
-
-interface SnippetMenuItem {
-  title: string
-  link: string
-}
-
-interface SnippetMenuGroup {
-  language: string
-  items: SnippetMenuItem[]
-}
-
-function listMarkdownFiles(directory: string): string[] {
-  const entries = readdirSync(directory, { withFileTypes: true })
-
-  return entries.flatMap((entry) => {
-    const path = join(directory, entry.name)
-    if (entry.isDirectory()) return listMarkdownFiles(path)
-    return entry.isFile() && entry.name.endsWith('.md') ? [path] : []
-  })
-}
-
-function buildSnippetMenu(locale: 'ru' | 'en'): SnippetMenuGroup[] {
-  const docsDir = fileURLToPath(new URL('../', import.meta.url))
-  const snippetsDir = join(docsDir, locale === 'en' ? 'en/snippets' : 'snippets')
-  if (!statSync(snippetsDir, { throwIfNoEntry: false })) {
-    console.warn(`[config] snippets directory not found: ${snippetsDir}`)
-    return []
-  }
-
-  const groups = new Map<string, SnippetMenuItem[]>()
-
-  for (const file of listMarkdownFiles(snippetsDir)) {
-    const { data } = matter(readFileSync(file, 'utf8'))
-    if (typeof data.title !== 'string' || typeof data.slug !== 'string') continue
-
-    const language = String(data.language ?? '')
-    if (!language) continue
-
-    const url = relative(docsDir, file)
-      .replace(/\.md$/, '')
-      .replace(/\/index$/, '/')
-      .split('/')
-      .map((segment) => segment.replace(/\s+/g, '-'))
-      .join('/')
-    const prefix = locale === 'en' ? '/en' : ''
-    const items = groups.get(language) ?? []
-    items.push({ title: data.title, link: `${prefix}/${url}` })
-    groups.set(language, items)
-  }
-
-  return [...groups.entries()]
-    .map(([language, items]) => ({
-      language,
-      items: items.sort((left, right) => left.title.localeCompare(right.title, 'en')),
-    }))
-    .sort((left, right) => left.language.localeCompare(right.language, 'en'))
-}
-
-function navbarSnippetMenu(locale: 'ru' | 'en', label: string) {
-  const menu = buildSnippetMenu(locale)
-  if (!menu.length) return { text: label, link: locale === 'en' ? '/en/' : '/' }
-
-  return {
-    text: label,
-    items: menu.map((group) => ({
-      text: group.language,
-      items: group.items.map((item) => ({ text: item.title, link: item.link })),
-    })),
-  }
-}
-
-function sidebarSnippetMenu(locale: 'ru' | 'en') {
-  const menu = buildSnippetMenu(locale)
-  return menu.map((group) => ({
-    text: group.language,
-    collapsed: false,
-    items: group.items,
-  }))
-}
 
 function normalizeBase(value: string): string {
   const segment = value.trim().replace(/^\/+|\/+$/g, '')
@@ -105,12 +21,20 @@ function resolveBase(): string {
     : normalizeBase(name)
 }
 
+const siteBase = resolveBase()
+
 export default defineConfig({
   title: 'CodeBites',
   description: 'Быстрый поиск проверенных сниппетов кода',
-  base: resolveBase(),
+  base: siteBase,
+  head: [['link', { rel: 'icon', type: 'image/svg+xml', href: `${siteBase}logo-light.svg` }]],
   cleanUrls: true,
   lastUpdated: true,
+  transformPageData(pageData) {
+    if (/(^|\/)snippets\/.+\.md$/.test(pageData.relativePath)) {
+      pageData.frontmatter.aside = false
+    }
+  },
   markdown: {
     lineNumbers: true,
     codeCopyButtonTitle: 'Копировать код',
@@ -123,15 +47,9 @@ export default defineConfig({
       description: 'Быстрый поиск проверенных сниппетов кода',
       themeConfig: {
         nav: [
-          navbarSnippetMenu('ru', 'Сниппеты'),
+          { text: 'Сниппеты', link: '/' },
           { text: 'Как добавить', link: '/contributing' },
         ],
-        sidebar: {
-          '/snippets/': {
-            base: '/',
-            items: sidebarSnippetMenu('ru'),
-          },
-        },
         outline: { label: 'На странице' },
         docFooter: { prev: 'Назад', next: 'Далее' },
         lastUpdated: { text: 'Обновлено' },
@@ -141,6 +59,7 @@ export default defineConfig({
         sidebarMenuLabel: 'Меню',
         returnToTopLabel: 'Наверх',
         langMenuLabel: 'Язык',
+        skipToContentLabel: 'Перейти к содержимому',
         notFound: {
           title: 'Страница не найдена',
           quote: 'Возможно, сниппет был перемещён или удалён.',
@@ -157,15 +76,9 @@ export default defineConfig({
       description: 'Find proven code snippets without breaking your flow',
       themeConfig: {
         nav: [
-          navbarSnippetMenu('en', 'Snippets'),
+          { text: 'Snippets', link: '/en/' },
           { text: 'How to contribute', link: '/en/contributing' },
         ],
-        sidebar: {
-          '/en/snippets/': {
-            base: '/en/',
-            items: sidebarSnippetMenu('en'),
-          },
-        },
         outline: { label: 'On this page' },
         docFooter: { prev: 'Previous', next: 'Next' },
         lastUpdated: { text: 'Updated' },
@@ -175,6 +88,7 @@ export default defineConfig({
         sidebarMenuLabel: 'Menu',
         returnToTopLabel: 'Return to top',
         langMenuLabel: 'Language',
+        skipToContentLabel: 'Skip to content',
         notFound: {
           title: 'Page not found',
           quote: 'The snippet may have been moved or removed.',

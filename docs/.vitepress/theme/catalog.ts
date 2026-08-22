@@ -12,6 +12,7 @@ export interface SnippetSummary {
   url: string
   code: string
   codeLanguage: string
+  highlightedCode: string
   updated?: string
 }
 
@@ -30,6 +31,36 @@ export interface TagCount {
 export type SnippetSearchIndex = MiniSearch<SnippetSummary>
 
 export type SortMode = 'new' | 'alpha'
+
+const PREVIEW_TAG_LIMIT = 3
+const PREVIEW_CODE_LINE_LIMIT = 6
+
+const technologyLabels: Record<string, string> = {
+  bash: 'Bash',
+  css: 'CSS',
+  docker: 'Docker',
+  html: 'HTML',
+  javascript: 'JavaScript',
+  js: 'JavaScript',
+  linux: 'Linux',
+  php: 'PHP',
+  postgresql: 'PostgreSQL',
+  python: 'Python',
+  shell: 'Shell',
+  sql: 'SQL',
+  ts: 'TypeScript',
+  typescript: 'TypeScript',
+  yaml: 'YAML',
+  yml: 'YAML',
+}
+
+export function formatTechnologyName(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+
+  const normalized = trimmed.toLocaleLowerCase()
+  return technologyLabels[normalized] ?? `${normalized[0]?.toLocaleUpperCase() ?? ''}${normalized.slice(1)}`
+}
 
 export function formatDate(iso: string, locale: SnippetLocale): string {
   const date = new Date(`${iso}T00:00:00Z`)
@@ -77,6 +108,30 @@ function normalize(value: string): string {
   return value.trim().toLocaleLowerCase()
 }
 
+export function getContentTags(tags: readonly string[], language: string): string[] {
+  const category = normalize(language)
+  const seen = new Set<string>()
+
+  return tags
+    .map(normalize)
+    .filter((tag) => {
+      if (!tag || tag === category || seen.has(tag)) return false
+      seen.add(tag)
+      return true
+    })
+}
+
+export function getPreviewTags(tags: readonly string[], language: string): string[] {
+  return getContentTags(tags, language).slice(0, PREVIEW_TAG_LIMIT)
+}
+
+export function isLongCodePreview(code: string): boolean {
+  const normalized = code.trimEnd()
+  if (!normalized) return false
+
+  return normalized.split(/\r?\n/).length > PREVIEW_CODE_LINE_LIMIT
+}
+
 export function createSnippetSearchIndex(snippets: SnippetSummary[]): SnippetSearchIndex {
   const index = new MiniSearch<SnippetSummary>({
     idField: 'url',
@@ -119,7 +174,7 @@ export function filterSnippets(
     if (language && normalize(snippet.language) !== language) return false
     if (matchingUrls && !matchingUrls.has(snippet.url)) return false
 
-    const snippetTags = new Set(snippet.tags.map(normalize))
+    const snippetTags = new Set(getContentTags(snippet.tags, snippet.language))
     return tags.every((tag) => snippetTags.has(tag))
   })
 }
@@ -130,7 +185,7 @@ export function collectTags(snippets: SnippetSummary[], locale: SnippetLocale): 
   for (const snippet of snippets) {
     if (snippet.locale !== locale) continue
 
-    for (const tag of new Set(snippet.tags.map(normalize).filter(Boolean))) {
+    for (const tag of getContentTags(snippet.tags, snippet.language)) {
       counts.set(tag, (counts.get(tag) ?? 0) + 1)
     }
   }

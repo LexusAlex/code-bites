@@ -6,6 +6,10 @@ import {
   filterSnippets,
   findMatchTerms,
   formatDate,
+  formatTechnologyName,
+  getContentTags,
+  getPreviewTags,
+  isLongCodePreview,
   sortSnippets,
   type SnippetSummary,
 } from '../docs/.vitepress/theme/catalog'
@@ -21,6 +25,7 @@ const snippets: SnippetSummary[] = [
     url: '/snippets/javascript/unique-array-values',
     code: 'const unique = [...new Set(values)]',
     codeLanguage: 'js',
+    highlightedCode: '',
   },
   {
     slug: 'debounce-function',
@@ -32,6 +37,7 @@ const snippets: SnippetSummary[] = [
     url: '/snippets/typescript/debounce-function',
     code: 'export function debounce() {}',
     codeLanguage: 'ts',
+    highlightedCode: '',
     updated: '2026-08-20',
   },
   {
@@ -44,6 +50,7 @@ const snippets: SnippetSummary[] = [
     url: '/snippets/javascript/array-chunks',
     code: 'const chunks = []',
     codeLanguage: 'js',
+    highlightedCode: '',
     updated: '2026-01-15',
   },
   {
@@ -56,6 +63,7 @@ const snippets: SnippetSummary[] = [
     url: '/en/snippets/javascript/unique-array-values',
     code: 'const unique = [...new Set(values)]',
     codeLanguage: 'js',
+    highlightedCode: '',
   },
 ]
 
@@ -110,15 +118,60 @@ describe('catalog filtering', () => {
 })
 
 describe('catalog tags', () => {
+  it('keeps categories out of content tags', () => {
+    expect(getContentTags([' Linux ', 'filesystem', 'CLI', 'cli'], 'linux')).toEqual([
+      'filesystem',
+      'cli',
+    ])
+  })
+
   it('returns localized tag counts in deterministic order', () => {
     expect(collectTags(snippets, 'ru')).toEqual([
       { name: 'arrays', count: 2 },
-      { name: 'javascript', count: 2 },
       { name: 'collections', count: 1 },
       { name: 'functions', count: 1 },
       { name: 'performance', count: 1 },
-      { name: 'typescript', count: 1 },
     ])
+  })
+
+  it('limits card previews to three content tags', () => {
+    expect(
+      getPreviewTags(
+        ['typescript', 'functions', 'performance', 'timers', 'frontend'],
+        'typescript',
+      ),
+    ).toEqual(['functions', 'performance', 'timers'])
+  })
+
+  it('keeps the complete content tag list available outside card previews', () => {
+    expect(
+      getContentTags(
+        ['typescript', 'functions', 'performance', 'timers', 'frontend'],
+        'typescript',
+      ),
+    ).toEqual(['functions', 'performance', 'timers', 'frontend'])
+  })
+})
+
+describe('code previews', () => {
+  it('keeps six-line code collapsed without an expansion control', () => {
+    expect(isLongCodePreview(['1', '2', '3', '4', '5', '6'].join('\n'))).toBe(false)
+  })
+
+  it('marks seven-line code as expandable', () => {
+    expect(isLongCodePreview(['1', '2', '3', '4', '5', '6', '7'].join('\n'))).toBe(true)
+  })
+})
+
+describe('technology labels', () => {
+  it('formats known technology names', () => {
+    expect(formatTechnologyName('typescript')).toBe('TypeScript')
+    expect(formatTechnologyName('javascript')).toBe('JavaScript')
+    expect(formatTechnologyName('sql')).toBe('SQL')
+  })
+
+  it('capitalizes an unknown technology name without losing the rest', () => {
+    expect(formatTechnologyName('elixir')).toBe('Elixir')
   })
 })
 

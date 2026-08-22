@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, watch } from 'vue'
+import { computed, nextTick, onMounted, watch } from 'vue'
 import { useData, useRoute } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
 
@@ -7,27 +7,35 @@ import SnippetMeta from './components/SnippetMeta.vue'
 
 const { lang } = useData()
 const route = useRoute()
+const isCatalogPage = computed(() => route.path === '/' || route.path === '/en/')
 
-function localizeCopyButtons(): void {
+function localizeThemeControls(): void {
+  const isEnglish = lang.value.startsWith('en')
   const label = lang.value.startsWith('en') ? 'Copy code' : 'Копировать код'
   document.querySelectorAll<HTMLButtonElement>('button.copy').forEach((button) => {
     button.title = label
     button.setAttribute('aria-label', label)
   })
+
+  const navigationLabel = isEnglish ? 'Mobile navigation' : 'Мобильная навигация'
+  document.querySelector<HTMLButtonElement>('button.VPNavBarHamburger')?.setAttribute(
+    'aria-label',
+    navigationLabel,
+  )
 }
 
-onMounted(localizeCopyButtons)
+onMounted(localizeThemeControls)
 watch(
-  () => route.path,
+  [() => route.path, () => lang.value],
   async () => {
     await nextTick()
-    localizeCopyButtons()
+    localizeThemeControls()
   },
 )
 </script>
 
 <template>
-  <DefaultTheme.Layout>
+  <DefaultTheme.Layout :class="{ 'is-catalog-page': isCatalogPage }">
     <template #doc-before>
       <SnippetMeta />
     </template>
