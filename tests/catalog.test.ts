@@ -4,6 +4,9 @@ import {
   collectTags,
   createSnippetSearchIndex,
   filterSnippets,
+  findMatchTerms,
+  formatDate,
+  sortSnippets,
   type SnippetSummary,
 } from '../docs/.vitepress/theme/catalog'
 
@@ -29,6 +32,7 @@ const snippets: SnippetSummary[] = [
     url: '/snippets/typescript/debounce-function',
     code: 'export function debounce() {}',
     codeLanguage: 'ts',
+    updated: '2026-08-20',
   },
   {
     slug: 'array-chunks',
@@ -40,6 +44,7 @@ const snippets: SnippetSummary[] = [
     url: '/snippets/javascript/array-chunks',
     code: 'const chunks = []',
     codeLanguage: 'js',
+    updated: '2026-01-15',
   },
   {
     slug: 'unique-array-values',
@@ -114,5 +119,71 @@ describe('catalog tags', () => {
       { name: 'performance', count: 1 },
       { name: 'typescript', count: 1 },
     ])
+  })
+})
+
+describe('formatDate', () => {
+  it('formats ISO dates for the Russian locale', () => {
+    expect(formatDate('2026-08-20', 'ru')).toBe('20 авг 2026')
+  })
+
+  it('formats ISO dates for the English locale', () => {
+    expect(formatDate('2026-08-20', 'en')).toBe('Aug 20, 2026')
+  })
+
+  it('returns the input when the date is invalid', () => {
+    expect(formatDate('not-a-date', 'ru')).toBe('not-a-date')
+  })
+})
+
+describe('sortSnippets', () => {
+  it('sorts by freshness first in the new mode', () => {
+    const result = sortSnippets(
+      snippets.filter((s) => s.locale === 'ru'),
+      'new',
+    )
+
+    expect(result.map((snippet) => snippet.slug)).toEqual([
+      'debounce-function',
+      'array-chunks',
+      'unique-array-values',
+    ])
+  })
+
+  it('sorts alphabetically by title in the alpha mode', () => {
+    const result = sortSnippets(snippets.filter((s) => s.locale === 'ru'), 'alpha')
+
+    const titles = result.map((snippet) => snippet.title)
+    expect(titles).toEqual([...titles].sort((left, right) => left.localeCompare(right, 'en')))
+  })
+
+  it('keeps snippets without a date at the end in the new mode', () => {
+    const noDate = snippets.filter((s) => s.locale === 'ru' && !s.updated)
+    const withDate = snippets.filter((s) => s.locale === 'ru' && s.updated)
+
+    const result = sortSnippets(
+      snippets.filter((s) => s.locale === 'ru'),
+      'new',
+    )
+
+    expect(result.slice(0, withDate.length).every((snippet) => snippet.updated)).toBe(true)
+    expect(result.slice(-noDate.length).every((snippet) => !snippet.updated)).toBe(true)
+  })
+})
+
+describe('findMatchTerms', () => {
+  it('maps matching URLs to search terms', () => {
+    const index = createSnippetSearchIndex(snippets)
+
+    const terms = findMatchTerms('debounce', index)
+
+    expect(terms.get('/snippets/typescript/debounce-function')).toEqual(['debounce'])
+    expect(terms.has('/snippets/javascript/array-chunks')).toBe(false)
+  })
+
+  it('returns an empty map for a blank query', () => {
+    const index = createSnippetSearchIndex(snippets)
+
+    expect(findMatchTerms('   ', index).size).toBe(0)
   })
 })

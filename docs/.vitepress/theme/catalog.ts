@@ -29,6 +29,50 @@ export interface TagCount {
 
 export type SnippetSearchIndex = MiniSearch<SnippetSummary>
 
+export type SortMode = 'new' | 'alpha'
+
+export function formatDate(iso: string, locale: SnippetLocale): string {
+  const date = new Date(`${iso}T00:00:00Z`)
+  if (Number.isNaN(date.getTime())) return iso
+
+  const monthNames =
+    locale === 'ru'
+      ? ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
+      : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+  return locale === 'ru'
+    ? `${date.getUTCDate()} ${monthNames[date.getUTCMonth()]} ${date.getUTCFullYear()}`
+    : `${monthNames[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`
+}
+
+export function sortSnippets(snippets: SnippetSummary[], mode: SortMode): SnippetSummary[] {
+  return [...snippets].sort((left, right) => {
+    if (mode === 'alpha') return left.title.localeCompare(right.title, 'en')
+
+    if (left.updated === right.updated) return left.title.localeCompare(right.title, 'en')
+    if (!left.updated) return 1
+    if (!right.updated) return -1
+    return right.updated.localeCompare(left.updated)
+  })
+}
+
+export function findMatchTerms(
+  query: string,
+  index: SnippetSearchIndex,
+): Map<string, string[]> {
+  const trimmed = query.trim()
+  if (!trimmed) return new Map()
+
+  const terms = new Map<string, string[]>()
+  for (const result of index.search(trimmed)) {
+    const url = String(result.id)
+    const match = result.terms.filter(Boolean)
+    if (!match.length) continue
+    terms.set(url, [...(terms.get(url) ?? []), ...match])
+  }
+  return terms
+}
+
 function normalize(value: string): string {
   return value.trim().toLocaleLowerCase()
 }
