@@ -18,7 +18,7 @@ function tagUrl(tag: string): string {
 
 <template>
   <div v-if="isSnippet" class="snippet-meta">
-    <span class="language-pill">{{ frontmatter.language }}</span>
+    <span class="language-pill" :data-language="frontmatter.language">{{ frontmatter.language }}</span>
     <a v-for="tag in tags" :key="tag" class="tag-chip tag-chip--compact" :href="tagUrl(tag)">
       #{{ tag }}
     </a>

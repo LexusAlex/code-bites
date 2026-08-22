@@ -6,7 +6,10 @@ import {
   collectTags,
   createSnippetSearchIndex,
   filterSnippets,
+  findMatchTerms,
+  sortSnippets,
   type SnippetLocale,
+  type SortMode,
 } from '../catalog'
 import SnippetCard from './SnippetCard.vue'
 
@@ -17,42 +20,48 @@ const props = defineProps<{
 const query = ref('')
 const language = ref('')
 const selectedTags = ref<string[]>([])
+const sortMode = ref<SortMode>('new')
+const tagsOpen = ref(false)
 const searchInput = ref<HTMLInputElement>()
 const hasMounted = ref(false)
 
 const text = computed(() =>
   props.locale === 'ru'
     ? {
-        eyebrow: 'Каталог',
-        title: 'Найдите решение за несколько секунд',
-        description: 'Поиск работает по названию, описанию, тегам и исходному коду.',
         search: 'Найти сниппет, API или фрагмент кода…',
         searchLabel: 'Поиск по каталогу',
+        clear: 'Очистить поиск',
         language: 'Все языки',
         languageLabel: 'Фильтр по языку',
+        sortNew: 'Сначала новые',
+        sortAlpha: 'По алфавиту',
+        sortLabel: 'Сортировка',
         tags: 'Фильтр по тегам',
+        tagsToggle: 'Теги',
         reset: 'Сбросить',
         shown: 'Показано',
         of: 'из',
         snippets: 'сниппетов',
         emptyTitle: 'Ничего не найдено',
-        emptyText: 'Попробуйте изменить запрос или сбросить часть фильтров.',
+        emptyForText: 'для',
       }
     : {
-        eyebrow: 'Catalog',
-        title: 'Find a solution in seconds',
-        description: 'Search across titles, descriptions, tags, and source code.',
         search: 'Find a snippet, API, or piece of code…',
         searchLabel: 'Search the catalog',
+        clear: 'Clear search',
         language: 'All languages',
         languageLabel: 'Filter by language',
+        sortNew: 'Newest first',
+        sortAlpha: 'Alphabetical',
+        sortLabel: 'Sort order',
         tags: 'Filter by tags',
+        tagsToggle: 'Tags',
         reset: 'Reset',
         shown: 'Showing',
         of: 'of',
         snippets: 'snippets',
         emptyTitle: 'No snippets found',
-        emptyText: 'Try changing the query or clearing some filters.',
+        emptyForText: 'for',
       },
 )
 
@@ -67,16 +76,22 @@ const languages = computed(() =>
   ),
 )
 const filteredSnippets = computed(() =>
-  filterSnippets(
-    localizedSnippets.value,
-    {
-      locale: props.locale,
-      query: query.value,
-      language: language.value,
-      tags: selectedTags.value,
-    },
-    searchIndex.value,
+  sortSnippets(
+    filterSnippets(
+      localizedSnippets.value,
+      {
+        locale: props.locale,
+        query: query.value,
+        language: language.value,
+        tags: selectedTags.value,
+      },
+      searchIndex.value,
+    ),
+    sortMode.value,
   ),
+)
+const matchTerms = computed(() =>
+  query.value.trim() ? findMatchTerms(query.value, searchIndex.value) : new Map<string, string[]>(),
 )
 const hasFilters = computed(
   () => Boolean(query.value || language.value || selectedTags.value.length),
@@ -86,6 +101,11 @@ function toggleTag(tag: string): void {
   selectedTags.value = selectedTags.value.includes(tag)
     ? selectedTags.value.filter((selectedTag) => selectedTag !== tag)
     : [...selectedTags.value, tag]
+}
+
+function clearSearch(): void {
+  query.value = ''
+  searchInput.value?.focus()
 }
 
 function resetFilters(): void {
@@ -102,6 +122,7 @@ function readFiltersFromUrl(): void {
     .split(',')
     .map((tag) => tag.trim())
     .filter((tag) => tags.value.some((knownTag) => knownTag.name === tag))
+  sortMode.value = params.get('sort') === 'alpha' ? 'alpha' : 'new'
 }
 
 function writeFiltersToUrl(): void {
@@ -115,6 +136,7 @@ function writeFiltersToUrl(): void {
   selectedTags.value.length
     ? url.searchParams.set('tags', selectedTags.value.join(','))
     : url.searchParams.delete('tags')
+  sortMode.value !== 'new' ? url.searchParams.set('sort', sortMode.value) : url.searchParams.delete('sort')
   window.history.replaceState({}, '', url)
 }
 
@@ -134,17 +156,11 @@ onMounted(() => {
 
 onBeforeUnmount(() => window.removeEventListener('keydown', handleShortcut))
 
-watch([query, language, selectedTags], writeFiltersToUrl, { deep: true })
+watch([query, language, selectedTags, sortMode], writeFiltersToUrl, { deep: true })
 </script>
 
 <template>
-  <section id="catalog" class="snippet-catalog" aria-labelledby="catalog-title">
-    <div class="catalog-heading">
-      <span class="catalog-eyebrow">{{ text.eyebrow }}</span>
-      <h2 id="catalog-title">{{ text.title }}</h2>
-      <p>{{ text.description }}</p>
-    </div>
-
+  <section id="catalog" class="snippet-catalog">
     <div class="catalog-controls">
       <label class="catalog-search">
         <span class="sr-only">{{ text.searchLabel }}</span>
@@ -152,8 +168,26 @@ watch([query, language, selectedTags], writeFiltersToUrl, { deep: true })
           <circle cx="11" cy="11" r="6.5" />
           <path d="m16 16 4 4" />
         </svg>
-        <input ref="searchInput" v-model="query" type="search" :placeholder="text.search" />
-        <kbd>/</kbd>
+        <input
+          ref="searchInput"
+          v-model="query"
+          type="search"
+          :placeholder="text.search"
+          @keydown.escape="clearSearch"
+        />
+        <button
+          v-if="query"
+          type="button"
+          class="search-clear"
+          :title="text.clear"
+          :aria-label="text.clear"
+          @click="clearSearch"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="m7 7 10 10M17 7 7 17" />
+          </svg>
+        </button>
+        <kbd v-else>/</kbd>
       </label>
 
       <label class="language-select">
@@ -164,9 +198,28 @@ watch([query, language, selectedTags], writeFiltersToUrl, { deep: true })
         </select>
         <svg aria-hidden="true" viewBox="0 0 20 20"><path d="m6 8 4 4 4-4" /></svg>
       </label>
+
+      <label class="language-select sort-select">
+        <span class="sr-only">{{ text.sortLabel }}</span>
+        <select v-model="sortMode">
+          <option value="new">{{ text.sortNew }}</option>
+          <option value="alpha">{{ text.sortAlpha }}</option>
+        </select>
+        <svg aria-hidden="true" viewBox="0 0 20 20"><path d="m6 8 4 4 4-4" /></svg>
+      </label>
+
+      <button type="button" class="tags-toggle" :aria-expanded="tagsOpen" @click="tagsOpen = !tagsOpen">
+        {{ text.tagsToggle }}
+        <span v-if="selectedTags.length">{{ selectedTags.length }}</span>
+      </button>
     </div>
 
-    <div v-if="tags.length" class="catalog-tags" :aria-label="text.tags">
+    <div
+      v-if="tags.length"
+      class="catalog-tags"
+      :class="{ 'catalog-tags--open': tagsOpen }"
+      :aria-label="text.tags"
+    >
       <button
         v-for="tag in tags"
         :key="tag.name"
@@ -181,30 +234,30 @@ watch([query, language, selectedTags], writeFiltersToUrl, { deep: true })
       </button>
     </div>
 
-    <div class="catalog-summary" aria-live="polite">
+    <div v-if="hasFilters" class="catalog-summary" aria-live="polite">
       <span>
         {{ text.shown }} <strong>{{ filteredSnippets.length }}</strong> {{ text.of }}
         {{ localizedSnippets.length }} {{ text.snippets }}
       </span>
-      <button v-if="hasFilters" type="button" class="reset-button" @click="resetFilters">
+      <button type="button" class="reset-button" @click="resetFilters">
         {{ text.reset }}
       </button>
     </div>
 
-    <div v-if="filteredSnippets.length" class="snippet-grid">
+    <div v-if="filteredSnippets.length" class="snippet-list">
       <SnippetCard
         v-for="snippet in filteredSnippets"
         :key="snippet.url"
         :snippet="snippet"
         :locale="locale"
+        :match-terms="matchTerms.get(snippet.url)"
         @toggle-tag="toggleTag"
       />
     </div>
 
     <div v-else class="catalog-empty">
-      <span aria-hidden="true">⌁</span>
-      <h3>{{ text.emptyTitle }}</h3>
-      <p>{{ text.emptyText }}</p>
+      <h3>{{ text.emptyTitle }}<template v-if="query"> {{ text.emptyForText }} “{{ query }}”</template></h3>
+      <p>{{ locale === 'ru' ? 'Попробуйте изменить запрос или сбросить часть фильтров.' : 'Try changing the query or clearing some filters.' }}</p>
       <button type="button" class="reset-button reset-button--solid" @click="resetFilters">
         {{ text.reset }}
       </button>
