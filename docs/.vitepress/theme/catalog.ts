@@ -34,6 +34,7 @@ export type SortMode = 'new' | 'alpha'
 
 const PREVIEW_TAG_LIMIT = 3
 const PREVIEW_CODE_LINE_LIMIT = 6
+export const SNIPPET_BATCH_SIZE = 12
 
 const commandLineLanguages = new Set(['bash', 'sh', 'shell', 'zsh', 'console', 'linux'])
 
@@ -87,6 +88,13 @@ export function sortSnippets(snippets: SnippetSummary[], mode: SortMode): Snippe
     if (!right.updated) return -1
     return right.updated.localeCompare(left.updated)
   })
+}
+
+export function getVisibleSnippets(
+  snippets: readonly SnippetSummary[],
+  batchCount: number,
+): SnippetSummary[] {
+  return snippets.slice(0, batchCount * SNIPPET_BATCH_SIZE)
 }
 
 export function findMatchTerms(

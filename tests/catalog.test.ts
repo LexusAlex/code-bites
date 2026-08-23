@@ -10,6 +10,7 @@ import {
   formatTechnologyName,
   getContentTags,
   getPreviewTags,
+  getVisibleSnippets,
   isCommandLineSnippet,
   isLongCodePreview,
   sortSnippets,
@@ -116,6 +117,38 @@ describe('catalog filtering', () => {
     })
 
     expect(result).toEqual([])
+  })
+})
+
+describe('catalog pagination', () => {
+  const manySnippets = Array.from({ length: 13 }, (_, index): SnippetSummary => ({
+    ...snippets[0]!,
+    slug: `snippet-${index + 1}`,
+    title: index === 12 ? 'Скрытая иголка' : `Сниппет ${index + 1}`,
+    url: `/snippets/javascript/snippet-${index + 1}`,
+  }))
+
+  it('shows no more than twelve snippets in the first batch', () => {
+    const result = getVisibleSnippets(manySnippets, 1)
+
+    expect(result).toHaveLength(12)
+    expect(result.map((snippet) => snippet.slug)).toEqual(
+      Array.from({ length: 12 }, (_, index) => `snippet-${index + 1}`),
+    )
+  })
+
+  it('shows the remaining snippets after requesting another batch', () => {
+    const result = getVisibleSnippets(manySnippets, 2)
+
+    expect(result).toHaveLength(13)
+    expect(result.at(-1)?.slug).toBe('snippet-13')
+  })
+
+  it('searches the complete catalog before limiting visible results', () => {
+    const index = createSnippetSearchIndex(manySnippets)
+    const matches = filterSnippets(manySnippets, { locale: 'ru', query: 'иголка' }, index)
+
+    expect(getVisibleSnippets(matches, 1).map((snippet) => snippet.slug)).toEqual(['snippet-13'])
   })
 })
 

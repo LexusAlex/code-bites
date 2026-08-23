@@ -7,6 +7,7 @@ import {
   filterSnippets,
   findMatchTerms,
   formatTechnologyName,
+  getVisibleSnippets,
   sortSnippets,
   type SnippetLocale,
   type SnippetSummary,
@@ -25,6 +26,7 @@ const selectedTags = ref<string[]>([])
 const sortMode = ref<SortMode>('new')
 const tagsOpen = ref(false)
 const filtersOpen = ref(false)
+const visibleBatchCount = ref(1)
 const searchInput = ref<HTMLInputElement>()
 const hasMounted = ref(false)
 
@@ -45,9 +47,10 @@ const text = computed(() =>
         filters: 'Фильтры',
         results: 'Результаты',
         reset: 'Сбросить',
-        shown: 'Показано',
+        found: 'Найдено',
         of: 'из',
         snippets: 'сниппетов',
+        loadMore: 'Показать ещё',
         emptyTitle: 'Ничего не найдено',
         emptyForText: 'для',
       }
@@ -66,9 +69,10 @@ const text = computed(() =>
         filters: 'Filters',
         results: 'Results',
         reset: 'Reset',
-        shown: 'Showing',
+        found: 'Found',
         of: 'of',
         snippets: 'snippets',
+        loadMore: 'Show more',
         emptyTitle: 'No snippets found',
         emptyForText: 'for',
       },
@@ -98,6 +102,12 @@ const filteredSnippets = computed(() =>
     ),
     sortMode.value,
   ),
+)
+const visibleSnippets = computed(() =>
+  getVisibleSnippets(filteredSnippets.value, visibleBatchCount.value),
+)
+const hasMoreSnippets = computed(
+  () => visibleSnippets.value.length < filteredSnippets.value.length,
 )
 const matchTerms = computed(() =>
   query.value.trim() ? findMatchTerms(query.value, searchIndex.value) : new Map<string, string[]>(),
@@ -131,6 +141,10 @@ function resetFilters(): void {
 function toggleFilters(): void {
   filtersOpen.value = !filtersOpen.value
   if (!filtersOpen.value) tagsOpen.value = false
+}
+
+function showMoreSnippets(): void {
+  visibleBatchCount.value += 1
 }
 
 function readFiltersFromUrl(): void {
@@ -175,7 +189,14 @@ onMounted(() => {
 
 onBeforeUnmount(() => window.removeEventListener('keydown', handleShortcut))
 
-watch([query, language, selectedTags, sortMode], writeFiltersToUrl, { deep: true })
+watch(
+  [query, language, selectedTags, sortMode],
+  () => {
+    visibleBatchCount.value = 1
+    writeFiltersToUrl()
+  },
+  { deep: true },
+)
 </script>
 
 <template>
@@ -296,7 +317,7 @@ watch([query, language, selectedTags, sortMode], writeFiltersToUrl, { deep: true
 
       <div v-if="hasFilters" class="catalog-summary" aria-live="polite">
         <span>
-          {{ text.shown }} <strong>{{ filteredSnippets.length }}</strong> {{ text.of }}
+          {{ text.found }} <strong>{{ filteredSnippets.length }}</strong> {{ text.of }}
           {{ localizedSnippets.length }} {{ text.snippets }}
         </span>
         <button type="button" class="reset-button" @click="resetFilters">
@@ -304,16 +325,24 @@ watch([query, language, selectedTags, sortMode], writeFiltersToUrl, { deep: true
         </button>
       </div>
 
-      <div v-if="filteredSnippets.length" class="snippet-list">
-        <SnippetCard
-          v-for="snippet in filteredSnippets"
-          :key="snippet.url"
-          :snippet="snippet"
-          :locale="locale"
-          :match-terms="matchTerms.get(snippet.url)"
-          @toggle-tag="toggleTag"
-        />
-      </div>
+      <template v-if="filteredSnippets.length">
+        <div class="snippet-list">
+          <SnippetCard
+            v-for="snippet in visibleSnippets"
+            :key="snippet.url"
+            :snippet="snippet"
+            :locale="locale"
+            :match-terms="matchTerms.get(snippet.url)"
+            @toggle-tag="toggleTag"
+          />
+        </div>
+
+        <div v-if="hasMoreSnippets" class="catalog-load-more">
+          <button type="button" class="load-more-button" @click="showMoreSnippets">
+            {{ text.loadMore }}
+          </button>
+        </div>
+      </template>
 
       <div v-else class="catalog-empty">
         <h3>{{ text.emptyTitle }}<template v-if="query"> {{ text.emptyForText }} “{{ query }}”</template></h3>
