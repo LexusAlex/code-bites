@@ -34,13 +34,13 @@ snippets: ## Список сниппетов
 	npm run snippets:list
 
 docker-up: ## Запустить dev-окружение в Docker
-	docker compose up -d
+	env UID=$$(id -u) GID=$$(id -g) docker compose up -d
 
 docker-down: ## Остановить Docker-окружение
 	docker compose down
 
 docker-build: ## Собрать Docker-образ
-	docker compose build
+	env UID=$$(id -u) GID=$$(id -g) docker compose build
 
 clean: ## Удалить node_modules и результаты сборки
 	rm -rf node_modules docs/.vitepress/dist docs/.vitepress/cache
