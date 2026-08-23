@@ -35,6 +35,8 @@ export type SortMode = 'new' | 'alpha'
 const PREVIEW_TAG_LIMIT = 3
 const PREVIEW_CODE_LINE_LIMIT = 6
 
+const commandLineLanguages = new Set(['bash', 'sh', 'shell', 'zsh', 'console', 'linux'])
+
 const technologyLabels: Record<string, string> = {
   bash: 'Bash',
   css: 'CSS',
@@ -130,6 +132,51 @@ export function isLongCodePreview(code: string): boolean {
   if (!normalized) return false
 
   return normalized.split(/\r?\n/).length > PREVIEW_CODE_LINE_LIMIT
+}
+
+export function isCommandLineSnippet(codeLanguage: string, language: string): boolean {
+  return [codeLanguage, language].some((value) => {
+    const normalized = value.trim().toLocaleLowerCase()
+    return normalized.length > 0 && commandLineLanguages.has(normalized)
+  })
+}
+
+export interface CodeLine {
+  text: string
+  copyText: string
+  copyable: boolean
+}
+
+export function buildCodeLines(code: string): CodeLine[] {
+  const lines = code
+    .replace(/\r\n?/g, '\n')
+    .replace(/\n+$/, '')
+    .split('\n')
+  const result: CodeLine[] = []
+
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index] ?? ''
+    const trimmed = line.trim()
+
+    if (!trimmed || trimmed.startsWith('#')) {
+      result.push({ text: line, copyText: '', copyable: false })
+      continue
+    }
+
+    const parts = [line]
+    while (parts[parts.length - 1]?.trimEnd().endsWith('\\') && index + 1 < lines.length) {
+      index += 1
+      parts.push(lines[index] ?? '')
+    }
+
+    const copyText = parts.join('\n')
+    result.push({ text: line, copyText, copyable: true })
+    for (const part of parts.slice(1)) {
+      result.push({ text: part, copyText: '', copyable: false })
+    }
+  }
+
+  return result
 }
 
 export function createSnippetSearchIndex(snippets: SnippetSummary[]): SnippetSearchIndex {

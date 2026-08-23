@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildCodeLines,
   collectTags,
   createSnippetSearchIndex,
   filterSnippets,
@@ -9,6 +10,7 @@ import {
   formatTechnologyName,
   getContentTags,
   getPreviewTags,
+  isCommandLineSnippet,
   isLongCodePreview,
   sortSnippets,
   type SnippetSummary,
@@ -160,6 +162,58 @@ describe('code previews', () => {
 
   it('marks seven-line code as expandable', () => {
     expect(isLongCodePreview(['1', '2', '3', '4', '5', '6', '7'].join('\n'))).toBe(true)
+  })
+})
+
+describe('command-line snippets', () => {
+  it('detects shell code fences and languages', () => {
+    expect(isCommandLineSnippet('bash', 'linux')).toBe(true)
+    expect(isCommandLineSnippet('', 'linux')).toBe(true)
+    expect(isCommandLineSnippet('Sh', '')).toBe(true)
+    expect(isCommandLineSnippet('zsh', 'shell')).toBe(true)
+    expect(isCommandLineSnippet('js', 'javascript')).toBe(false)
+    expect(isCommandLineSnippet('', '')).toBe(false)
+  })
+
+  it('marks commands as copyable and skips comments and blank lines', () => {
+    const lines = buildCodeLines(
+      ['# создать пользователя', 'sudo useradd crm8', '', 'sudo passwd crm8'].join('\n'),
+    )
+
+    expect(lines).toEqual([
+      { text: '# создать пользователя', copyText: '', copyable: false },
+      { text: 'sudo useradd crm8', copyText: 'sudo useradd crm8', copyable: true },
+      { text: '', copyText: '', copyable: false },
+      { text: 'sudo passwd crm8', copyText: 'sudo passwd crm8', copyable: true },
+    ])
+  })
+
+  it('joins backslash continuations into a single copyable command', () => {
+    const lines = buildCodeLines(
+      ['sudo useradd \\', '  --create-home \\', '  --shell /bin/bash crm8', 'sudo passwd crm8'].join(
+        '\n',
+      ),
+    )
+
+    expect(lines).toEqual([
+      {
+        text: 'sudo useradd \\',
+        copyText: 'sudo useradd \\\n  --create-home \\\n  --shell /bin/bash crm8',
+        copyable: true,
+      },
+      { text: '  --create-home \\', copyText: '', copyable: false },
+      { text: '  --shell /bin/bash crm8', copyText: '', copyable: false },
+      { text: 'sudo passwd crm8', copyText: 'sudo passwd crm8', copyable: true },
+    ])
+  })
+
+  it('normalizes Windows line endings', () => {
+    const lines = buildCodeLines('sudo apt update\r\nsudo apt upgrade\r\n')
+
+    expect(lines).toEqual([
+      { text: 'sudo apt update', copyText: 'sudo apt update', copyable: true },
+      { text: 'sudo apt upgrade', copyText: 'sudo apt upgrade', copyable: true },
+    ])
   })
 })
 

@@ -3,10 +3,12 @@ import { computed, onUnmounted, ref } from 'vue'
 import { withBase } from 'vitepress'
 
 import {
+  buildCodeLines,
   formatDate,
   formatTechnologyName,
   getContentTags,
   getPreviewTags,
+  isCommandLineSnippet,
   isLongCodePreview,
   type SnippetSummary,
 } from '../catalog'
@@ -23,7 +25,9 @@ const emit = defineEmits<{
 
 const copied = ref(false)
 const codeExpanded = ref(false)
+const copiedLineIndex = ref(-1)
 let copiedTimer: ReturnType<typeof setTimeout> | undefined
+let copiedLineTimer: ReturnType<typeof setTimeout> | undefined
 
 const text = computed(() =>
   props.locale === 'ru'
@@ -31,6 +35,8 @@ const text = computed(() =>
         open: 'Открыть',
         copy: 'Копировать',
         copied: 'Скопировано',
+        copyCommand: 'Скопировать команду',
+        copiedCommand: 'Команда скопирована',
         expand: 'Развернуть код',
         collapse: 'Свернуть код',
         moreTags: 'Ещё тегов',
@@ -39,6 +45,8 @@ const text = computed(() =>
         open: 'Open',
         copy: 'Copy',
         copied: 'Copied',
+        copyCommand: 'Copy command',
+        copiedCommand: 'Command copied',
         expand: 'Expand code',
         collapse: 'Collapse code',
         moreTags: 'More tags',
@@ -54,6 +62,30 @@ const previewTags = computed(() => getPreviewTags(props.snippet.tags, props.snip
 const hiddenTagCount = computed(() => contentTags.value.length - previewTags.value.length)
 const codePreviewId = computed(() => `code-preview-${props.locale}-${props.snippet.slug}`)
 
+interface RenderedCodeLine {
+  html: string
+  text: string
+  copyText: string
+  copyable: boolean
+}
+
+const codeLines = computed<RenderedCodeLine[] | null>(() => {
+  if (!isCommandLineSnippet(props.snippet.codeLanguage, props.snippet.language)) return null
+  if (!props.snippet.code) return null
+
+  const lines = buildCodeLines(props.snippet.code)
+  const highlightedLines = props.snippet.highlightedCode
+    ? props.snippet.highlightedCode.trimEnd().split(/\r?\n/)
+    : []
+
+  return lines.map((line, index) => ({
+    html: highlightedLines.length === lines.length ? (highlightedLines[index] ?? '') : '',
+    text: line.text,
+    copyText: line.copyText,
+    copyable: line.copyable,
+  }))
+})
+
 async function copyCode(): Promise<void> {
   if (!props.snippet.code || typeof navigator === 'undefined') return
 
@@ -65,8 +97,20 @@ async function copyCode(): Promise<void> {
   }, 1800)
 }
 
+async function copyLine(text: string, index: number): Promise<void> {
+  if (!text || typeof navigator === 'undefined') return
+
+  await navigator.clipboard.writeText(text)
+  copiedLineIndex.value = index
+  if (copiedLineTimer) clearTimeout(copiedLineTimer)
+  copiedLineTimer = setTimeout(() => {
+    copiedLineIndex.value = -1
+  }, 1800)
+}
+
 onUnmounted(() => {
   if (copiedTimer) clearTimeout(copiedTimer)
+  if (copiedLineTimer) clearTimeout(copiedLineTimer)
 })
 
 interface Segment {
@@ -169,7 +213,21 @@ function highlightSegments(value: string, terms: string[] | undefined): Segment[
           }"
         >
           <pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code
-            v-if="snippet.highlightedCode"
+            v-if="codeLines"
+          ><template v-for="(line, index) in codeLines" :key="index"><span class="code-line"><span
+            v-if="line.html"
+            class="code-line__content"
+            v-html="line.html"
+          ></span><span v-else class="code-line__content">{{ line.text }}</span><button
+            v-if="line.copyable"
+            type="button"
+            class="code-line__copy"
+            :class="{ 'code-line__copy--copied': copiedLineIndex === index }"
+            :aria-label="copiedLineIndex === index ? text.copiedCommand : text.copyCommand"
+            :title="copiedLineIndex === index ? text.copiedCommand : text.copyCommand"
+            @click="copyLine(line.copyText, index)"
+          ><svg v-if="copiedLineIndex !== index" aria-hidden="true" viewBox="0 0 24 24"><path d="M8 7.5A2.5 2.5 0 0 1 10.5 5h7A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 8 16.5v-9Z" /><path d="M15.5 5V4.5A2.5 2.5 0 0 0 13 2H6.5A2.5 2.5 0 0 0 4 4.5V13a2.5 2.5 0 0 0 2.5 2.5H8" /></svg><svg v-else aria-hidden="true" viewBox="0 0 24 24"><path d="m5 13 4 4L19 7" /></svg></button></span>{{ '\n' }}</template></code><code
+            v-else-if="snippet.highlightedCode"
             v-html="snippet.highlightedCode"
           ></code><code v-else>{{ snippet.code }}</code></pre>
         </div>

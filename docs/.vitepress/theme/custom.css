@@ -577,6 +577,73 @@ button.tag-chip {
   min-width: max-content;
 }
 
+.code-line {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 8px;
+}
+
+.code-line__content {
+  min-width: 0;
+}
+
+.code-line__copy {
+  position: sticky;
+  right: 4px;
+  z-index: 1;
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 1.5em;
+  height: 1.5em;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--cb-code-border);
+  border-radius: 5px;
+  background: var(--cb-code);
+  color: var(--cb-code-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.code-line:hover .code-line__copy,
+.code-line__copy:focus-visible,
+.code-line__copy--copied {
+  opacity: 1;
+}
+
+.code-line__copy:hover {
+  color: var(--cb-code-text);
+  border-color: var(--vp-c-brand-1);
+}
+
+.code-line__copy--copied {
+  color: #15803d;
+  border-color: rgba(21, 128, 61, 0.35);
+}
+
+.dark .code-line__copy--copied {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.35);
+}
+
+.code-line__copy svg {
+  width: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+@media (hover: none) {
+  .code-line__copy {
+    opacity: 0.5;
+  }
+}
+
 .copy-button,
 .code-expand-button {
   display: inline-flex;
@@ -854,6 +921,10 @@ button.tag-chip {
 
   .snippet-card__code pre {
     font-size: 10.5px;
+  }
+
+  .code-line {
+    gap: 5px;
   }
 
   .copy-button,
