@@ -27,7 +27,10 @@ export default defineConfig({
   title: 'CodeBites',
   description: 'Быстрый поиск проверенных сниппетов кода',
   base: siteBase,
-  head: [['link', { rel: 'icon', type: 'image/svg+xml', href: `${siteBase}logo-light.svg` }]],
+  head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: `${siteBase}logo-light.svg` }],
+    ['meta', { name: 'robots', content: 'noindex, nofollow' }],
+  ],
   cleanUrls: true,
   lastUpdated: true,
   transformPageData(pageData) {
