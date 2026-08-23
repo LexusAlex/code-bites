@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-import { data as snippets } from '../snippets.data'
 import {
   collectTags,
   createSnippetSearchIndex,
@@ -10,12 +9,14 @@ import {
   formatTechnologyName,
   sortSnippets,
   type SnippetLocale,
+  type SnippetSummary,
   type SortMode,
 } from '../catalog'
 import SnippetCard from './SnippetCard.vue'
 
 const props = defineProps<{
   locale: SnippetLocale
+  snippets: SnippetSummary[]
 }>()
 
 const query = ref('')
@@ -74,10 +75,10 @@ const text = computed(() =>
 )
 
 const localizedSnippets = computed(() =>
-  snippets.filter((snippet) => snippet.locale === props.locale),
+  props.snippets.filter((snippet) => snippet.locale === props.locale),
 )
 const searchIndex = computed(() => createSnippetSearchIndex(localizedSnippets.value))
-const tags = computed(() => collectTags(snippets, props.locale))
+const tags = computed(() => collectTags(props.snippets, props.locale))
 const languages = computed(() =>
   [...new Set(localizedSnippets.value.map((snippet) => snippet.language))].sort((left, right) =>
     left.localeCompare(right, 'en'),

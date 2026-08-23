@@ -4,4 +4,8 @@ title: Сниппеты кода
 titleTemplate: false
 ---
 
-<SnippetCatalog locale="ru" />
+<script setup>
+import SnippetCatalogRu from './.vitepress/theme/components/SnippetCatalogRu.vue'
+</script>
+
+<SnippetCatalogRu />
