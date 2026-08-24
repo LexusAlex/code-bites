@@ -324,6 +324,11 @@ button.tag-chip {
   color: #2496ed;
 }
 
+.language-pill[data-language='git'] {
+  background: color-mix(in srgb, #f4511e 13%, transparent);
+  color: #c2410c;
+}
+
 .language-pill[data-language='linux'],
 .language-pill[data-language='bash'],
 .language-pill[data-language='shell'] {
@@ -347,6 +352,10 @@ button.tag-chip {
 
 .dark .language-pill[data-language='docker'] {
   color: #60b3f7;
+}
+
+.dark .language-pill[data-language='git'] {
+  color: #fb7a50;
 }
 
 .dark .language-pill[data-language='linux'],
@@ -1152,6 +1161,36 @@ button.tag-chip {
   align-items: center;
 }
 
+.snippet-meta__date {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  color: var(--cb-muted);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.snippet-meta__date svg {
+  width: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.snippet-detail-footer {
+  margin-top: 34px;
+  padding-top: 20px;
+  border-top: 1px solid var(--vp-c-divider);
+}
+
+.snippet-detail-footer .snippet-back {
+  margin-bottom: 0;
+}
+
 .vp-doc [class*='language-'] > button.copy {
   opacity: 1;
 }
@@ -1178,6 +1217,11 @@ button.tag-chip {
 }
 
 @media (max-width: 760px) {
+  .snippet-meta__date {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+
   .snippet-catalog {
     width: min(100% - 32px, 880px);
     margin-top: 22px;

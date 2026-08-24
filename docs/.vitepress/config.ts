@@ -36,6 +36,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (/(^|\/)snippets\/.+\.md$/.test(pageData.relativePath)) {
       pageData.frontmatter.aside = false
+      delete pageData.lastUpdated
     }
   },
   markdown: {

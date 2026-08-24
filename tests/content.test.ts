@@ -238,3 +238,28 @@ describe('content authoring', () => {
     expect(documents.map((document) => document.frontmatter.locale)).toEqual(['en'])
   })
 })
+
+describe('published destructive snippet guidance', () => {
+  const gitResetSnippet = join(
+    process.cwd(),
+    'docs',
+    'snippets',
+    'git',
+    'git-reset-last-commit.md',
+  )
+
+  it('places the destructive warning before the command', async () => {
+    const source = await readFile(gitResetSnippet, 'utf8')
+    const dangerIndex = source.indexOf('::: danger')
+    const commandIndex = source.indexOf('```bash')
+
+    expect(dangerIndex).toBeGreaterThan(-1)
+    expect(commandIndex).toBeGreaterThan(dangerIndex)
+  })
+
+  it('requires leaked secrets to be revoked or rotated immediately', async () => {
+    const source = await readFile(gitResetSnippet, 'utf8')
+
+    expect(source).toContain('немедленно отозвать или заменить')
+  })
+})
