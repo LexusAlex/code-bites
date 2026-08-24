@@ -431,7 +431,7 @@ button.tag-chip {
 
 .snippet-list {
   display: grid;
-  gap: 10px;
+  gap: 14px;
 }
 
 .catalog-load-more {
@@ -458,21 +458,99 @@ button.tag-chip {
 }
 
 .snippet-card {
+  --snippet-accent: var(--vp-c-brand-1);
+  --snippet-accent-soft: color-mix(in srgb, var(--snippet-accent) 11%, transparent);
   position: relative;
+  isolation: isolate;
   min-width: 0;
   overflow: hidden;
-  padding: 14px;
+  padding: 17px;
   border: 1px solid var(--cb-border);
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--cb-surface);
-  box-shadow: 0 1px 2px rgba(30, 41, 59, 0.03);
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  box-shadow: 0 2px 5px rgba(30, 41, 59, 0.035);
+  transition: border-color 0.22s, box-shadow 0.22s, transform 0.22s;
 }
 
-.snippet-card:hover {
-  border-color: color-mix(in srgb, var(--vp-c-brand-1) 35%, var(--cb-border));
+.snippet-card::before {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  right: 28px;
+  left: 28px;
+  height: 3px;
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(90deg, transparent, var(--snippet-accent) 24%, var(--snippet-accent) 76%, transparent);
+  content: '';
+  opacity: 0.82;
+  transform: scaleX(0.7);
+  transition: opacity 0.22s, transform 0.22s;
+}
+
+.snippet-card::after {
+  position: absolute;
+  z-index: 0;
+  top: -110px;
+  right: -90px;
+  width: 260px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--snippet-accent-soft), transparent 68%);
+  content: '';
+  opacity: 0.68;
+  pointer-events: none;
+  transition: opacity 0.22s, transform 0.22s;
+}
+
+.snippet-card[data-language='git'] {
+  --snippet-accent: #f4511e;
+}
+
+.snippet-card:is([data-language='linux'], [data-language='bash'], [data-language='shell']) {
+  --snippet-accent: #16a34a;
+}
+
+.snippet-card:is([data-language='typescript'], [data-language='ts']) {
+  --snippet-accent: #3178c6;
+}
+
+.snippet-card:is([data-language='javascript'], [data-language='js']) {
+  --snippet-accent: #ca8a04;
+}
+
+.snippet-card[data-language='sql'] {
+  --snippet-accent: #d97706;
+}
+
+.snippet-card[data-language='docker'] {
+  --snippet-accent: #2496ed;
+}
+
+.snippet-card[data-language='python'] {
+  --snippet-accent: #3776ab;
+}
+
+.snippet-card[data-language='php'] {
+  --snippet-accent: #777bb4;
+}
+
+.snippet-card:hover,
+.snippet-card:focus-within {
+  border-color: color-mix(in srgb, var(--snippet-accent) 42%, var(--cb-border));
   box-shadow: var(--cb-shadow);
-  transform: translateY(-1px);
+  transform: translateY(-3px);
+}
+
+.snippet-card:hover::before,
+.snippet-card:focus-within::before {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.snippet-card:hover::after,
+.snippet-card:focus-within::after {
+  opacity: 1;
+  transform: scale(1.12);
 }
 
 .snippet-card__surface-link {
@@ -483,6 +561,8 @@ button.tag-chip {
 }
 
 .snippet-card__topline {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -491,66 +571,146 @@ button.tag-chip {
 }
 
 .snippet-card__date {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   color: var(--cb-muted);
-  font-size: 11px;
+  font-size: 10.5px;
+  font-weight: 550;
+}
+
+.snippet-card__date svg {
+  width: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.4;
 }
 
 .snippet-card__content {
+  position: relative;
+  z-index: 2;
   min-width: 0;
   pointer-events: none;
+}
+
+.snippet-card .language-pill {
+  gap: 7px;
+  padding: 4px 10px 4px 4px;
+  border-color: color-mix(in srgb, var(--snippet-accent) 18%, transparent);
+  background: var(--snippet-accent-soft);
+  color: var(--snippet-accent);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.language-pill__icon {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--snippet-accent);
+  color: #fff;
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--snippet-accent) 26%, transparent);
+}
+
+.language-pill__icon svg {
+  width: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
 }
 
 .snippet-card__title {
   position: relative;
   z-index: 2;
-  margin: 8px 0 0;
+  margin: 12px 0 0;
   border: 0;
-  font-size: 17px;
-  line-height: 1.4;
-  letter-spacing: -0.01em;
+  font-size: 19px;
+  font-weight: 720;
+  line-height: 1.32;
+  letter-spacing: -0.018em;
 }
 
 .snippet-card__title a {
   color: var(--vp-c-text-1);
   pointer-events: auto;
   text-decoration: none;
+  transition: color 0.16s;
 }
 
-.snippet-card__title a:hover {
-  color: var(--vp-c-brand-1);
+.snippet-card__title a:hover,
+.snippet-card:hover .snippet-card__title a {
+  color: color-mix(in srgb, var(--snippet-accent) 86%, var(--vp-c-text-1));
 }
 
 .snippet-card__description {
-  margin: 4px 0 0;
+  max-width: 760px;
+  margin: 6px 0 0;
   color: var(--cb-muted);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
   pointer-events: none;
 }
 
 .snippet-card__code {
   position: relative;
   z-index: 2;
-  margin-top: 10px;
+  margin-top: 14px;
   overflow: hidden;
   border: 1px solid var(--cb-code-border);
-  border-radius: 8px;
+  border-radius: 11px;
   background: var(--cb-code);
+  box-shadow: 0 7px 18px rgba(30, 41, 59, 0.045), inset 0 1px 0 rgba(255, 255, 255, 0.45);
   pointer-events: auto;
 }
 
 .snippet-card__codebar {
   display: flex;
-  height: 32px;
+  height: 36px;
   align-items: center;
   justify-content: space-between;
-  padding: 0 6px 0 12px;
+  padding: 0 7px 0 11px;
   border-bottom: 1px solid var(--cb-code-border);
   background: var(--cb-code-bar);
 }
 
-.snippet-card__codebar > span {
-  color: var(--cb-code-muted);
+.snippet-card__code-identity {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.snippet-card__window-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.snippet-card__window-controls i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fb7185;
+  box-shadow: 0 0 0 1px rgba(159, 18, 57, 0.08);
+}
+
+.snippet-card__window-controls i:nth-child(2) {
+  background: #fbbf24;
+}
+
+.snippet-card__window-controls i:nth-child(3) {
+  background: #4ade80;
+}
+
+.snippet-card__code-language {
+  color: color-mix(in srgb, var(--snippet-accent) 76%, var(--cb-code-muted));
   font: 700 9px/1 var(--vp-font-family-mono);
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -587,10 +747,10 @@ button.tag-chip {
 .snippet-card__code pre {
   margin: 0;
   overflow-x: auto;
-  padding: 8px 10px 9px;
+  padding: 10px 12px 11px;
   background: transparent;
   color: var(--cb-code-text);
-  font: 11px/1.45 var(--vp-font-family-mono);
+  font: 11px/1.52 var(--vp-font-family-mono);
   white-space: pre;
   scrollbar-width: thin;
 }
@@ -725,12 +885,20 @@ button.tag-chip {
   align-items: flex-end;
   justify-content: space-between;
   gap: 18px;
-  margin-top: 11px;
+  margin-top: 13px;
 }
 
 .snippet-card .tag-chip--compact {
-  padding: 4px 8px !important;
+  padding: 5px 9px !important;
+  border-color: transparent;
+  background: var(--cb-surface-soft);
   font-size: 10px;
+}
+
+.snippet-card .tag-chip--compact:hover {
+  border-color: color-mix(in srgb, var(--snippet-accent) 30%, transparent);
+  background: var(--snippet-accent-soft);
+  color: var(--snippet-accent);
 }
 
 .snippet-tags {
@@ -747,15 +915,26 @@ button.tag-chip {
 
 .snippet-card__link {
   display: inline-flex;
-  min-height: 32px;
+  min-height: 34px;
   flex: 0 0 auto;
   align-items: center;
-  gap: 5px;
-  color: var(--vp-c-brand-1);
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--snippet-accent) 20%, transparent);
+  border-radius: 9px;
+  background: var(--snippet-accent-soft);
+  color: var(--snippet-accent);
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
-  transition: color 0.15s;
+  transition: border-color 0.16s, background 0.16s, color 0.16s, transform 0.16s;
+}
+
+.snippet-card:hover .snippet-card__link,
+.snippet-card__link:hover {
+  border-color: var(--snippet-accent);
+  background: var(--snippet-accent);
+  color: #fff;
 }
 
 .snippet-card__link svg {
@@ -935,11 +1114,11 @@ button.tag-chip {
   }
 
   .snippet-card {
-    padding: 13px;
+    padding: 14px;
   }
 
   .snippet-card__title {
-    font-size: 17px;
+    font-size: 18px;
   }
 
   .snippet-card__code pre {

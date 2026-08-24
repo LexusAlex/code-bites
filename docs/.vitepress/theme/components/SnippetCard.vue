@@ -136,7 +136,7 @@ function highlightSegments(value: string, terms: string[] | undefined): Segment[
 </script>
 
 <template>
-  <article class="snippet-card">
+  <article class="snippet-card" :data-language="snippet.language">
     <a
       class="snippet-card__surface-link"
       :href="withBase(snippet.url)"
@@ -146,11 +146,20 @@ function highlightSegments(value: string, terms: string[] | undefined): Segment[
 
     <div class="snippet-card__topline">
       <span class="language-pill" :data-language="snippet.language">
-        {{ formatTechnologyName(snippet.language) }}
+        <span class="language-pill__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="m9 7-5 5 5 5M15 7l5 5-5 5" />
+          </svg>
+        </span>
+        <span>{{ formatTechnologyName(snippet.language) }}</span>
       </span>
-      <time v-if="formattedDate" class="snippet-card__date" :datetime="snippet.updated">{{
-        formattedDate
-      }}</time>
+      <time v-if="formattedDate" class="snippet-card__date" :datetime="snippet.updated">
+        <svg aria-hidden="true" viewBox="0 0 20 20">
+          <circle cx="10" cy="10" r="7" />
+          <path d="M10 6v4l2.5 1.5" />
+        </svg>
+        {{ formattedDate }}
+      </time>
     </div>
 
     <div class="snippet-card__content">
@@ -174,7 +183,14 @@ function highlightSegments(value: string, terms: string[] | undefined): Segment[
 
       <div v-if="snippet.code" class="snippet-card__code">
         <div class="snippet-card__codebar">
-          <span>{{ snippet.codeLanguage || snippet.language }}</span>
+          <div class="snippet-card__code-identity">
+            <span class="snippet-card__window-controls" aria-hidden="true">
+              <i></i><i></i><i></i>
+            </span>
+            <span class="snippet-card__code-language">{{
+              snippet.codeLanguage || snippet.language
+            }}</span>
+          </div>
           <div class="snippet-card__code-actions">
             <button
               v-if="hasLongCode"
