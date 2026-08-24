@@ -7,6 +7,10 @@ import { z } from 'zod'
 
 export const SNIPPET_LOCALES = ['ru', 'en'] as const
 export type SnippetLocale = (typeof SNIPPET_LOCALES)[number]
+export const SNIPPET_RISKS = ['caution', 'destructive'] as const
+export type SnippetRisk = (typeof SNIPPET_RISKS)[number]
+export const SNIPPET_REQUIREMENTS = ['sudo', 'linux'] as const
+export type SnippetRequirement = (typeof SNIPPET_REQUIREMENTS)[number]
 
 const slugSchema = z
   .string()
@@ -37,6 +41,18 @@ export const snippetFrontmatterSchema = z.object({
         })
       }
     }),
+  risk: z.enum(SNIPPET_RISKS).optional(),
+  requirements: z
+    .array(z.enum(SNIPPET_REQUIREMENTS))
+    .default([])
+    .superRefine((requirements, context) => {
+      if (new Set(requirements).size !== requirements.length) {
+        context.addIssue({
+          code: 'custom',
+          message: 'requirements must be unique',
+        })
+      }
+    }),
   updated: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must use YYYY-MM-DD').optional(),
 })
 
@@ -51,6 +67,8 @@ export interface NewSnippetInput {
   tags: string[]
   code: string
   codeLanguage?: string
+  risk?: SnippetRisk
+  requirements?: SnippetRequirement[]
   updated?: string
 }
 
@@ -147,6 +165,11 @@ function codeFence(code: string): string {
 function renderSnippet(frontmatter: SnippetFrontmatter, code: string, codeLanguage: string): string {
   const fence = codeFence(code)
   const tags = frontmatter.tags.map((tag) => `  - ${yamlString(tag)}`).join('\n')
+  const requirements = frontmatter.requirements.length
+    ? ['requirements:', ...frontmatter.requirements.map((item) => `  - ${yamlString(item)}`)].join(
+        '\n',
+      )
+    : undefined
 
   return [
     '---',
@@ -157,6 +180,8 @@ function renderSnippet(frontmatter: SnippetFrontmatter, code: string, codeLangua
     `language: ${yamlString(frontmatter.language)}`,
     'tags:',
     tags,
+    frontmatter.risk ? `risk: ${yamlString(frontmatter.risk)}` : undefined,
+    requirements,
     frontmatter.updated ? `updated: ${yamlString(frontmatter.updated)}` : undefined,
     '---',
     '',
@@ -184,6 +209,8 @@ export async function createSnippetFile(
     locale: input.locale,
     language: normalizeTag(input.language),
     tags: [...new Set(input.tags.map(normalizeTag).filter(Boolean))],
+    risk: input.risk,
+    requirements: [...new Set(input.requirements ?? [])],
     updated: input.updated ?? new Date().toISOString().slice(0, 10),
   }
   const parsed = snippetFrontmatterSchema.safeParse(normalizedInput)

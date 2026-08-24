@@ -1,6 +1,9 @@
 import MiniSearch from 'minisearch'
 
 export type SnippetLocale = 'ru' | 'en'
+export type SnippetRisk = 'caution' | 'destructive'
+export type SnippetRequirement = 'sudo' | 'linux'
+export type SnippetBadge = SnippetRisk | SnippetRequirement
 
 export interface SnippetSummary {
   slug: string
@@ -13,6 +16,8 @@ export interface SnippetSummary {
   code: string
   codeLanguage: string
   highlightedCode: string
+  risk?: SnippetRisk
+  requirements?: SnippetRequirement[]
   updated?: string
 }
 
@@ -147,6 +152,59 @@ export function isCommandLineSnippet(codeLanguage: string, language: string): bo
     const normalized = value.trim().toLocaleLowerCase()
     return normalized.length > 0 && commandLineLanguages.has(normalized)
   })
+}
+
+export function getSnippetBadges(
+  snippet: Pick<SnippetSummary, 'risk' | 'requirements'>,
+): SnippetBadge[] {
+  const badges: SnippetBadge[] = []
+  if (snippet.risk) badges.push(snippet.risk)
+
+  for (const requirement of ['sudo', 'linux'] as const) {
+    if (snippet.requirements?.includes(requirement)) badges.push(requirement)
+  }
+
+  return badges
+}
+
+function formatRussianCount(count: number, one: string, few: string, many: string): string {
+  const mod100 = count % 100
+  const mod10 = count % 10
+  const noun =
+    mod100 >= 11 && mod100 <= 14
+      ? many
+      : mod10 === 1
+        ? one
+        : mod10 >= 2 && mod10 <= 4
+          ? few
+          : many
+
+  return `${count} ${noun}`
+}
+
+export function formatSnippetMetric(
+  code: string,
+  codeLanguage: string,
+  language: string,
+  locale: SnippetLocale,
+): string {
+  const normalized = code.replace(/\r\n?/g, '\n').trimEnd()
+  if (!normalized.trim()) return ''
+
+  const lineCount = normalized.split('\n').length
+  const commandCount = isCommandLineSnippet(codeLanguage, language)
+    ? buildCodeLines(normalized).filter((line) => line.copyable).length
+    : 0
+  const count = commandCount || lineCount
+  const kind = commandCount ? 'command' : 'line'
+
+  if (locale === 'ru') {
+    return kind === 'command'
+      ? formatRussianCount(count, 'команда', 'команды', 'команд')
+      : formatRussianCount(count, 'строка', 'строки', 'строк')
+  }
+
+  return `${count} ${kind}${count === 1 ? '' : 's'}`
 }
 
 export interface CodeLine {

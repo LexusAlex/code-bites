@@ -333,6 +333,7 @@ watch(
             :snippet="snippet"
             :locale="locale"
             :match-terms="matchTerms.get(snippet.url)"
+            :selected-tags="selectedTags"
             @toggle-tag="toggleTag"
           />
         </div>

@@ -5,11 +5,14 @@ import { withBase } from 'vitepress'
 import {
   buildCodeLines,
   formatDate,
+  formatSnippetMetric,
   formatTechnologyName,
   getContentTags,
   getPreviewTags,
+  getSnippetBadges,
   isCommandLineSnippet,
   isLongCodePreview,
+  type SnippetBadge,
   type SnippetSummary,
 } from '../catalog'
 
@@ -17,6 +20,7 @@ const props = defineProps<{
   snippet: SnippetSummary
   locale: 'ru' | 'en'
   matchTerms?: string[]
+  selectedTags?: string[]
 }>()
 
 const emit = defineEmits<{
@@ -40,6 +44,12 @@ const text = computed(() =>
         expand: 'Развернуть код',
         collapse: 'Свернуть код',
         moreTags: 'Ещё тегов',
+        badges: {
+          caution: 'С осторожностью',
+          destructive: 'Опасная команда',
+          sudo: 'Требует sudo',
+          linux: 'Только Linux',
+        } satisfies Record<SnippetBadge, string>,
       }
     : {
         open: 'Open',
@@ -50,6 +60,12 @@ const text = computed(() =>
         expand: 'Expand code',
         collapse: 'Collapse code',
         moreTags: 'More tags',
+        badges: {
+          caution: 'Use with care',
+          destructive: 'Destructive',
+          sudo: 'Requires sudo',
+          linux: 'Linux only',
+        } satisfies Record<SnippetBadge, string>,
       },
 )
 
@@ -61,6 +77,20 @@ const contentTags = computed(() => getContentTags(props.snippet.tags, props.snip
 const previewTags = computed(() => getPreviewTags(props.snippet.tags, props.snippet.language))
 const hiddenTagCount = computed(() => contentTags.value.length - previewTags.value.length)
 const codePreviewId = computed(() => `code-preview-${props.locale}-${props.snippet.slug}`)
+const badges = computed(() =>
+  getSnippetBadges(props.snippet).map((badge) => ({
+    key: badge,
+    label: text.value.badges[badge],
+  })),
+)
+const metric = computed(() =>
+  formatSnippetMetric(
+    props.snippet.code,
+    props.snippet.codeLanguage,
+    props.snippet.language,
+    props.locale,
+  ),
+)
 
 interface RenderedCodeLine {
   html: string
@@ -145,14 +175,25 @@ function highlightSegments(value: string, terms: string[] | undefined): Segment[
     ></a>
 
     <div class="snippet-card__topline">
-      <span class="language-pill" :data-language="snippet.language">
-        <span class="language-pill__icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24">
-            <path d="m9 7-5 5 5 5M15 7l5 5-5 5" />
-          </svg>
+      <div class="snippet-card__badges">
+        <span class="language-pill" :data-language="snippet.language">
+          <span class="language-pill__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="m9 7-5 5 5 5M15 7l5 5-5 5" />
+            </svg>
+          </span>
+          <span>{{ formatTechnologyName(snippet.language) }}</span>
         </span>
-        <span>{{ formatTechnologyName(snippet.language) }}</span>
-      </span>
+        <span
+          v-for="badge in badges"
+          :key="badge.key"
+          class="snippet-status"
+          :class="`snippet-status--${badge.key}`"
+        >
+          <span class="snippet-status__dot" aria-hidden="true"></span>
+          {{ badge.label }}
+        </span>
+      </div>
       <time v-if="formattedDate" class="snippet-card__date" :datetime="snippet.updated">
         <svg aria-hidden="true" viewBox="0 0 20 20">
           <circle cx="10" cy="10" r="7" />
@@ -251,23 +292,33 @@ function highlightSegments(value: string, terms: string[] | undefined): Segment[
     </div>
 
     <footer class="snippet-card__footer">
-      <div class="snippet-tags" :aria-label="locale === 'ru' ? 'Теги' : 'Tags'">
-        <button
-          v-for="tag in previewTags"
-          :key="tag"
-          type="button"
-          class="tag-chip tag-chip--compact"
-          @click="emit('toggleTag', tag)"
-        >
-          #{{ tag }}
-        </button>
-        <span
-          v-if="hiddenTagCount"
-          class="tag-overflow"
-          :title="`${text.moreTags}: ${hiddenTagCount}`"
-          :aria-label="`${text.moreTags}: ${hiddenTagCount}`"
-        >
-          +{{ hiddenTagCount }}
+      <div class="snippet-card__footer-details">
+        <div class="snippet-tags" :aria-label="locale === 'ru' ? 'Теги' : 'Tags'">
+          <button
+            v-for="tag in previewTags"
+            :key="tag"
+            type="button"
+            class="tag-chip tag-chip--compact"
+            :class="{ 'tag-chip--active': selectedTags?.includes(tag) }"
+            :aria-pressed="selectedTags?.includes(tag)"
+            @click="emit('toggleTag', tag)"
+          >
+            #{{ tag }}
+          </button>
+          <span
+            v-if="hiddenTagCount"
+            class="tag-overflow"
+            :title="`${text.moreTags}: ${hiddenTagCount}`"
+            :aria-label="`${text.moreTags}: ${hiddenTagCount}`"
+          >
+            +{{ hiddenTagCount }}
+          </span>
+        </div>
+        <span v-if="metric" class="snippet-card__metric">
+          <svg aria-hidden="true" viewBox="0 0 20 20">
+            <path d="m5 7 3 3-3 3M10 13h5" />
+          </svg>
+          {{ metric }}
         </span>
       </div>
       <a class="snippet-card__link" :href="withBase(snippet.url)">

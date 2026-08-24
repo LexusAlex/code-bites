@@ -52,6 +52,56 @@ describe('content validation', () => {
     await expect(validateSnippetFiles(projectRoot)).resolves.toEqual([])
   })
 
+  it('preserves valid semantic metadata', async () => {
+    const semanticFrontmatter = validFrontmatter.replace(
+      'updated: "2026-08-20"',
+      [
+        'risk: "destructive"',
+        'requirements:',
+        '  - "sudo"',
+        '  - "linux"',
+        'updated: "2026-08-20"',
+      ].join('\n'),
+    )
+    await writeSnippet('docs/snippets/javascript/unique-values.md', semanticFrontmatter)
+
+    const documents = await listSnippetFiles(projectRoot)
+
+    expect(documents[0]?.frontmatter).toMatchObject({
+      risk: 'destructive',
+      requirements: ['sudo', 'linux'],
+    })
+  })
+
+  it('rejects an unknown risk level', async () => {
+    const invalidFrontmatter = validFrontmatter.replace(
+      'updated: "2026-08-20"',
+      'risk: "critical"\nupdated: "2026-08-20"',
+    )
+    await writeSnippet('docs/snippets/javascript/unique-values.md', invalidFrontmatter)
+
+    const issues = await validateSnippetFiles(projectRoot)
+
+    expect(issues.some((issue) => issue.message.includes('risk'))).toBe(true)
+  })
+
+  it('rejects duplicate requirements', async () => {
+    const invalidFrontmatter = validFrontmatter.replace(
+      'updated: "2026-08-20"',
+      [
+        'requirements:',
+        '  - "sudo"',
+        '  - "sudo"',
+        'updated: "2026-08-20"',
+      ].join('\n'),
+    )
+    await writeSnippet('docs/snippets/javascript/unique-values.md', invalidFrontmatter)
+
+    const issues = await validateSnippetFiles(projectRoot)
+
+    expect(issues.some((issue) => issue.message.includes('requirements must be unique'))).toBe(true)
+  })
+
   it('reports malformed frontmatter fields', async () => {
     await writeSnippet(
       'docs/snippets/javascript/unique-values.md',
@@ -103,6 +153,28 @@ describe('content authoring', () => {
     expect(file).toBe(join(projectRoot, 'docs/en/snippets/typescript/array-chunks.md'))
     await expect(readFile(file, 'utf8')).resolves.toContain(
       'tags:\n  - "typescript"\n  - "data-structures"',
+    )
+  })
+
+  it('serializes supplied semantic metadata', async () => {
+    const file = await createSnippetFile(projectRoot, {
+      slug: 'dangerous-command',
+      locale: 'en',
+      title: 'Dangerous command',
+      description: 'A command that needs extra care.',
+      language: 'shell',
+      tags: ['shell', 'maintenance'],
+      code: 'sudo dangerous-command',
+      codeLanguage: 'bash',
+      risk: 'destructive',
+      requirements: ['sudo', 'linux'],
+      updated: '2026-08-20',
+    })
+
+    const content = await readFile(file, 'utf8')
+
+    expect(content).toContain(
+      'risk: "destructive"\nrequirements:\n  - "sudo"\n  - "linux"',
     )
   })
 

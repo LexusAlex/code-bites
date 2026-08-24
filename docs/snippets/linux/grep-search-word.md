@@ -10,6 +10,8 @@ tags:
   - "find"
   - "search"
   - "cli"
+requirements:
+  - "linux"
 updated: "2026-08-23"
 ---
 

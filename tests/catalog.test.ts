@@ -7,9 +7,11 @@ import {
   filterSnippets,
   findMatchTerms,
   formatDate,
+  formatSnippetMetric,
   formatTechnologyName,
   getContentTags,
   getPreviewTags,
+  getSnippetBadges,
   getVisibleSnippets,
   isCommandLineSnippet,
   isLongCodePreview,
@@ -195,6 +197,57 @@ describe('code previews', () => {
 
   it('marks seven-line code as expandable', () => {
     expect(isLongCodePreview(['1', '2', '3', '4', '5', '6', '7'].join('\n'))).toBe(true)
+  })
+})
+
+describe('snippet badges', () => {
+  it('orders risk before execution requirements', () => {
+    expect(
+      getSnippetBadges({ risk: 'destructive', requirements: ['sudo', 'linux'] }),
+    ).toEqual(['destructive', 'sudo', 'linux'])
+  })
+
+  it('returns no badges without semantic metadata', () => {
+    expect(getSnippetBadges({})).toEqual([])
+  })
+})
+
+describe('snippet metrics', () => {
+  it('formats one shell command in Russian', () => {
+    expect(formatSnippetMetric('sudo apt update', 'bash', 'linux', 'ru')).toBe('1 команда')
+  })
+
+  it('uses the Russian few plural for two shell commands', () => {
+    expect(formatSnippetMetric('sudo apt update\nsudo apt upgrade', 'bash', 'linux', 'ru')).toBe(
+      '2 команды',
+    )
+  })
+
+  it('uses the Russian many plural for five shell commands', () => {
+    expect(
+      formatSnippetMetric(
+        ['echo 1', 'echo 2', 'echo 3', 'echo 4', 'echo 5'].join('\n'),
+        'bash',
+        'linux',
+        'ru',
+      ),
+    ).toBe('5 команд')
+  })
+
+  it('counts a continued shell command once', () => {
+    expect(formatSnippetMetric('docker run \\\n  --rm \\\n  alpine', 'bash', 'linux', 'en')).toBe(
+      '1 command',
+    )
+  })
+
+  it('formats source lines for non-shell snippets', () => {
+    expect(formatSnippetMetric('const one = 1\nconst two = 2', 'ts', 'typescript', 'en')).toBe(
+      '2 lines',
+    )
+  })
+
+  it('returns no metric for empty code', () => {
+    expect(formatSnippetMetric('   ', 'ts', 'typescript', 'en')).toBe('')
   })
 })
 

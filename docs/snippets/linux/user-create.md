@@ -9,6 +9,9 @@ tags:
   - "users"
   - "cli"
   - "create"
+requirements:
+  - "sudo"
+  - "linux"
 updated: "2026-08-22"
 ---
 

@@ -9,6 +9,7 @@ tags:
   - "commit"
   - "history"
   - "undo"
+risk: "destructive"
 updated: "2026-08-23"
 ---
 
