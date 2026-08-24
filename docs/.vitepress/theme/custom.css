@@ -725,8 +725,11 @@ button.tag-chip {
 
 .snippet-card__code-viewport {
   position: relative;
-  max-height: 112px;
   overflow: hidden;
+}
+
+.snippet-card__code-viewport.is-clipped {
+  max-height: 112px;
 }
 
 .snippet-card__code-viewport.is-expanded {
