@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest'
+import type { ContentData } from 'vitepress'
 
 import {
   buildCodeLines,
   collectTags,
+  compactHighlightedCode,
   createSnippetSearchIndex,
   filterSnippets,
   findMatchTerms,
   formatDate,
+  formatDateTime,
   formatSnippetMetric,
   formatTechnologyName,
   getContentTags,
@@ -18,6 +21,7 @@ import {
   sortSnippets,
   type SnippetSummary,
 } from '../docs/.vitepress/theme/catalog'
+import { transformSnippetPages } from '../docs/.vitepress/theme/snippets-transform'
 
 const snippets: SnippetSummary[] = [
   {
@@ -31,6 +35,7 @@ const snippets: SnippetSummary[] = [
     code: 'const unique = [...new Set(values)]',
     codeLanguage: 'js',
     highlightedCode: '',
+    created: '2026-08-20T15:00:00+03:00',
   },
   {
     slug: 'debounce-function',
@@ -43,6 +48,7 @@ const snippets: SnippetSummary[] = [
     code: 'export function debounce() {}',
     codeLanguage: 'ts',
     highlightedCode: '',
+    created: '2026-08-20T13:00:00+03:00',
     updated: '2026-08-20',
   },
   {
@@ -56,6 +62,7 @@ const snippets: SnippetSummary[] = [
     code: 'const chunks = []',
     codeLanguage: 'js',
     highlightedCode: '',
+    created: '2026-08-20T14:00:00+03:00',
     updated: '2026-01-15',
   },
   {
@@ -69,6 +76,7 @@ const snippets: SnippetSummary[] = [
     code: 'const unique = [...new Set(values)]',
     codeLanguage: 'js',
     highlightedCode: '',
+    created: '2026-08-20T15:00:00+03:00',
   },
 ]
 
@@ -197,6 +205,40 @@ describe('code previews', () => {
 
   it('marks seven-line code as expandable', () => {
     expect(isLongCodePreview(['1', '2', '3', '4', '5', '6', '7'].join('\n'))).toBe(true)
+  })
+
+  it('preserves highlighted line boundaries for command previews', () => {
+    const pages = [
+      {
+        frontmatter: {
+          slug: 'two-lines',
+          locale: 'ru',
+          title: 'Две строки',
+          description: 'Две строки без пустого интервала.',
+          language: 'sql',
+          tags: ['sql'],
+          created: '2026-08-25T16:43:43+03:00',
+        },
+        url: '/snippets/sql/two-lines',
+        src: '```sql\nSELECT 1;\nSELECT 2;\n```',
+        html: '<pre class="shiki"><code><span class="line">SELECT 1;</span>\n<span class="line">SELECT 2;</span></code></pre>',
+      },
+    ] as unknown as ContentData[]
+
+    const result = transformSnippetPages(pages, 'ru')
+
+    expect(result[0]?.highlightedCode).toBe(
+      '<span class="line">SELECT 1;</span>\n<span class="line">SELECT 2;</span>',
+    )
+  })
+
+  it('removes whitespace only from directly rendered highlighted lines', () => {
+    const highlightedCode =
+      '<span class="line">SELECT 1;</span>\n<span class="line">SELECT 2;</span>'
+
+    expect(compactHighlightedCode(highlightedCode)).toBe(
+      '<span class="line">SELECT 1;</span><span class="line">SELECT 2;</span>',
+    )
   })
 })
 
@@ -329,17 +371,31 @@ describe('formatDate', () => {
   })
 })
 
+describe('formatDateTime', () => {
+  it('formats a creation timestamp in Russian', () => {
+    expect(formatDateTime('2026-08-25T16:43:43+03:00', 'ru')).toBe('25 авг 2026, 16:43')
+  })
+
+  it('formats a creation timestamp in English', () => {
+    expect(formatDateTime('2026-08-25T16:43:43+03:00', 'en')).toBe('Aug 25, 2026, 16:43')
+  })
+
+  it('returns the input when the creation timestamp is invalid', () => {
+    expect(formatDateTime('not-a-date', 'ru')).toBe('not-a-date')
+  })
+})
+
 describe('sortSnippets', () => {
-  it('sorts by freshness first in the new mode', () => {
+  it('sorts by creation time in the new mode', () => {
     const result = sortSnippets(
       snippets.filter((s) => s.locale === 'ru'),
       'new',
     )
 
     expect(result.map((snippet) => snippet.slug)).toEqual([
-      'debounce-function',
-      'array-chunks',
       'unique-array-values',
+      'array-chunks',
+      'debounce-function',
     ])
   })
 
@@ -350,17 +406,15 @@ describe('sortSnippets', () => {
     expect(titles).toEqual([...titles].sort((left, right) => left.localeCompare(right, 'en')))
   })
 
-  it('keeps snippets without a date at the end in the new mode', () => {
-    const noDate = snippets.filter((s) => s.locale === 'ru' && !s.updated)
-    const withDate = snippets.filter((s) => s.locale === 'ru' && s.updated)
+  it('keeps snippets without a creation timestamp at the end in the new mode', () => {
+    const withoutCreated = { ...snippets[0]!, slug: 'without-created', created: undefined }
 
-    const result = sortSnippets(
-      snippets.filter((s) => s.locale === 'ru'),
-      'new',
-    )
+    const result = sortSnippets([withoutCreated, snippets[1]!], 'new')
 
-    expect(result.slice(0, withDate.length).every((snippet) => snippet.updated)).toBe(true)
-    expect(result.slice(-noDate.length).every((snippet) => !snippet.updated)).toBe(true)
+    expect(result.map((snippet) => snippet.slug)).toEqual([
+      'debounce-function',
+      'without-created',
+    ])
   })
 })
 

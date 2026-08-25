@@ -30,6 +30,11 @@ function dateValue(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined
 }
 
+function dateTimeValue(value: unknown): string | undefined {
+  if (value instanceof Date) return value.toISOString()
+  return typeof value === 'string' ? value : undefined
+}
+
 export function transformSnippetPages(
   pages: ContentData[],
   locale: SnippetLocale,
@@ -62,6 +67,7 @@ export function transformSnippetPages(
         highlightedCode: firstHighlightedCode(page.html ?? ''),
         risk,
         requirements,
+        created: dateTimeValue(frontmatter.created),
         updated: dateValue(frontmatter.updated),
       }
     })

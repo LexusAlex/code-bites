@@ -18,6 +18,7 @@ export interface SnippetSummary {
   highlightedCode: string
   risk?: SnippetRisk
   requirements?: SnippetRequirement[]
+  created?: string
   updated?: string
 }
 
@@ -51,6 +52,7 @@ const technologyLabels: Record<string, string> = {
   javascript: 'JavaScript',
   js: 'JavaScript',
   linux: 'Linux',
+  mariadb: 'MariaDB',
   php: 'PHP',
   postgresql: 'PostgreSQL',
   python: 'Python',
@@ -84,14 +86,42 @@ export function formatDate(iso: string, locale: SnippetLocale): string {
     : `${monthNames[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`
 }
 
+export function formatDateTime(iso: string, locale: SnippetLocale): string {
+  const match = iso.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):\d{2}(?:\.\d{3})?(?:Z|[+-]\d{2}:\d{2})$/,
+  )
+  if (!match || Number.isNaN(Date.parse(iso))) return iso
+
+  const [, year = '', month = '', day = '', hours = '', minutes = ''] = match
+  const monthIndex = Number(month) - 1
+  const monthNames =
+    locale === 'ru'
+      ? ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
+      : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const monthName = monthNames[monthIndex]
+  if (!monthName) return iso
+
+  return locale === 'ru'
+    ? `${Number(day)} ${monthName} ${year}, ${hours}:${minutes}`
+    : `${monthName} ${Number(day)}, ${year}, ${hours}:${minutes}`
+}
+
+function creationTime(snippet: SnippetSummary): number | undefined {
+  if (!snippet.created) return undefined
+  const timestamp = Date.parse(snippet.created)
+  return Number.isNaN(timestamp) ? undefined : timestamp
+}
+
 export function sortSnippets(snippets: SnippetSummary[], mode: SortMode): SnippetSummary[] {
   return [...snippets].sort((left, right) => {
     if (mode === 'alpha') return left.title.localeCompare(right.title, 'en')
 
-    if (left.updated === right.updated) return left.title.localeCompare(right.title, 'en')
-    if (!left.updated) return 1
-    if (!right.updated) return -1
-    return right.updated.localeCompare(left.updated)
+    const leftCreated = creationTime(left)
+    const rightCreated = creationTime(right)
+    if (leftCreated === rightCreated) return left.title.localeCompare(right.title, 'en')
+    if (leftCreated === undefined) return 1
+    if (rightCreated === undefined) return -1
+    return rightCreated - leftCreated
   })
 }
 
@@ -145,6 +175,13 @@ export function isLongCodePreview(code: string): boolean {
   if (!normalized) return false
 
   return normalized.split(/\r?\n/).length > PREVIEW_CODE_LINE_LIMIT
+}
+
+export function compactHighlightedCode(highlightedCode: string): string {
+  return highlightedCode.replace(
+    /<\/span>\r?\n[\t ]*(?=<span class="line">)/g,
+    '</span>',
+  )
 }
 
 export function isCommandLineSnippet(codeLanguage: string, language: string): boolean {

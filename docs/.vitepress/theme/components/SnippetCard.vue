@@ -4,7 +4,8 @@ import { withBase } from 'vitepress'
 
 import {
   buildCodeLines,
-  formatDate,
+  compactHighlightedCode,
+  formatDateTime,
   formatSnippetMetric,
   formatTechnologyName,
   getContentTags,
@@ -44,6 +45,7 @@ const text = computed(() =>
         expand: 'Развернуть код',
         collapse: 'Свернуть код',
         moreTags: 'Ещё тегов',
+        created: 'Создано',
         badges: {
           caution: 'С осторожностью',
           destructive: 'Опасная команда',
@@ -60,6 +62,7 @@ const text = computed(() =>
         expand: 'Expand code',
         collapse: 'Collapse code',
         moreTags: 'More tags',
+        created: 'Created',
         badges: {
           caution: 'Use with care',
           destructive: 'Destructive',
@@ -69,14 +72,15 @@ const text = computed(() =>
       },
 )
 
-const formattedDate = computed(() =>
-  props.snippet.updated ? formatDate(props.snippet.updated, props.locale) : '',
+const formattedCreated = computed(() =>
+  props.snippet.created ? formatDateTime(props.snippet.created, props.locale) : '',
 )
 const hasLongCode = computed(() => isLongCodePreview(props.snippet.code))
 const contentTags = computed(() => getContentTags(props.snippet.tags, props.snippet.language))
 const previewTags = computed(() => getPreviewTags(props.snippet.tags, props.snippet.language))
 const hiddenTagCount = computed(() => contentTags.value.length - previewTags.value.length)
 const codePreviewId = computed(() => `code-preview-${props.locale}-${props.snippet.slug}`)
+const blockHighlightedCode = computed(() => compactHighlightedCode(props.snippet.highlightedCode))
 const badges = computed(() =>
   getSnippetBadges(props.snippet).map((badge) => ({
     key: badge,
@@ -194,12 +198,18 @@ function highlightSegments(value: string, terms: string[] | undefined): Segment[
           {{ badge.label }}
         </span>
       </div>
-      <time v-if="formattedDate" class="snippet-card__date" :datetime="snippet.updated">
+      <time
+        v-if="formattedCreated"
+        class="snippet-card__date"
+        :datetime="snippet.created"
+        :title="`${text.created}: ${formattedCreated}`"
+      >
         <svg aria-hidden="true" viewBox="0 0 20 20">
           <circle cx="10" cy="10" r="7" />
           <path d="M10 6v4l2.5 1.5" />
         </svg>
-        {{ formattedDate }}
+        <span class="sr-only">{{ text.created }}: </span>
+        {{ formattedCreated }}
       </time>
     </div>
 
@@ -284,8 +294,8 @@ function highlightSegments(value: string, terms: string[] | undefined): Segment[
             :title="copiedLineIndex === index ? text.copiedCommand : text.copyCommand"
             @click="copyLine(line.copyText, index)"
           ><svg v-if="copiedLineIndex !== index" aria-hidden="true" viewBox="0 0 24 24"><path d="M8 7.5A2.5 2.5 0 0 1 10.5 5h7A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 8 16.5v-9Z" /><path d="M15.5 5V4.5A2.5 2.5 0 0 0 13 2H6.5A2.5 2.5 0 0 0 4 4.5V13a2.5 2.5 0 0 0 2.5 2.5H8" /></svg><svg v-else aria-hidden="true" viewBox="0 0 24 24"><path d="m5 13 4 4L19 7" /></svg></button></span>{{ '\n' }}</template></code><code
-            v-else-if="snippet.highlightedCode"
-            v-html="snippet.highlightedCode"
+            v-else-if="blockHighlightedCode"
+            v-html="blockHighlightedCode"
           ></code><code v-else>{{ snippet.code }}</code></pre>
         </div>
       </div>
