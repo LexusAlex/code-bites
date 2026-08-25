@@ -47,7 +47,7 @@ const siteBase = resolveBase()
 
 export default defineConfig({
   title: 'CodeBites',
-  description: 'Быстрый поиск проверенных сниппетов кода',
+  description: 'Короткие проверенные решения для разработчиков',
   base: siteBase,
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: `${siteBase}logo-light.svg` }],
@@ -80,10 +80,10 @@ export default defineConfig({
       label: 'Русский',
       lang: 'ru-RU',
       title: 'CodeBites',
-      description: 'Быстрый поиск проверенных сниппетов кода',
+      description: 'Короткие проверенные решения для разработчиков',
       themeConfig: {
         nav: [
-          { text: 'Сниппеты', link: '/' },
+          { text: 'Кодобайты', link: '/' },
           { text: 'Как добавить', link: '/contributing' },
         ],
         outline: { label: 'На странице' },
@@ -98,7 +98,7 @@ export default defineConfig({
         skipToContentLabel: 'Перейти к содержимому',
         notFound: {
           title: 'Страница не найдена',
-          quote: 'Возможно, сниппет был перемещён или удалён.',
+          quote: 'Возможно, кодобайт был перемещён или удалён.',
           linkLabel: 'Вернуться к каталогу',
           linkText: 'Вернуться к каталогу',
         },
@@ -109,10 +109,10 @@ export default defineConfig({
       lang: 'en-US',
       link: '/en/',
       title: 'CodeBites',
-      description: 'Find proven code snippets without breaking your flow',
+      description: 'Short, proven solutions for developers',
       themeConfig: {
         nav: [
-          { text: 'Snippets', link: '/en/' },
+          { text: 'CodeBites', link: '/en/' },
           { text: 'How to contribute', link: '/en/contributing' },
         ],
         outline: { label: 'On this page' },
@@ -127,7 +127,7 @@ export default defineConfig({
         skipToContentLabel: 'Skip to content',
         notFound: {
           title: 'Page not found',
-          quote: 'The snippet may have been moved or removed.',
+          quote: 'The CodeBite may have been moved or removed.',
           linkLabel: 'Return to catalog',
           linkText: 'Return to catalog',
         },
@@ -155,7 +155,7 @@ export default defineConfig({
             translations: {
               button: {
                 buttonText: 'Поиск',
-                buttonAriaLabel: 'Поиск по сниппетам',
+                buttonAriaLabel: 'Поиск по кодобайтам',
               },
               modal: {
                 displayDetails: 'Показать подробности',
@@ -178,7 +178,7 @@ export default defineConfig({
             translations: {
               button: {
                 buttonText: 'Search',
-                buttonAriaLabel: 'Search snippets',
+                buttonAriaLabel: 'Search CodeBites',
               },
               modal: {
                 displayDetails: 'Display details',

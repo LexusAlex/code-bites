@@ -1,6 +1,6 @@
 ---
 layout: home
-title: Code snippets
+title: CodeBites
 titleTemplate: false
 ---
 

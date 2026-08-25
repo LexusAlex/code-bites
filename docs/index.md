@@ -1,6 +1,6 @@
 ---
 layout: home
-title: Сниппеты кода
+title: Кодобайты
 titleTemplate: false
 ---
 

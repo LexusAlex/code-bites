@@ -33,7 +33,7 @@ const hasMounted = ref(false)
 const text = computed(() =>
   props.locale === 'ru'
     ? {
-        catalogTitle: 'Каталог сниппетов',
+        catalogTitle: 'Кодобайты',
         search: 'Найти код…',
         searchLabel: 'Поиск по каталогу',
         clear: 'Очистить поиск',
@@ -49,13 +49,13 @@ const text = computed(() =>
         reset: 'Сбросить',
         found: 'Найдено',
         of: 'из',
-        snippets: 'сниппетов',
+        snippets: 'кодобайтов',
         loadMore: 'Показать ещё',
         emptyTitle: 'Ничего не найдено',
         emptyForText: 'для',
       }
     : {
-        catalogTitle: 'Snippet catalog',
+        catalogTitle: 'CodeBites',
         search: 'Find code…',
         searchLabel: 'Search the catalog',
         clear: 'Clear search',
@@ -71,9 +71,9 @@ const text = computed(() =>
         reset: 'Reset',
         found: 'Found',
         of: 'of',
-        snippets: 'snippets',
+        snippets: 'CodeBites',
         loadMore: 'Show more',
-        emptyTitle: 'No snippets found',
+        emptyTitle: 'No CodeBites found',
         emptyForText: 'for',
       },
 )

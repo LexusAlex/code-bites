@@ -1,9 +1,9 @@
 ---
-title: How to add a snippet
-description: The Git and CLI workflow for adding, translating, and removing snippets.
+title: How to add a CodeBite
+description: The Git and CLI workflow for adding, translating, and removing CodeBites.
 ---
 
-# How to add a snippet
+# How to add a CodeBite
 
 Content lives in Git as Markdown. Russian pages are stored in `docs/snippets`; English pages live in `docs/en/snippets`.
 
