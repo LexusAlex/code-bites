@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useData, withBase } from 'vitepress'
 
 import {
-  formatDate,
+  formatDateTime,
   formatTechnologyName,
   getContentTags,
   getSnippetBadges,
@@ -57,7 +57,9 @@ const badges = computed(() =>
   })),
 )
 const updated = computed(() => String(frontmatter.value.updated ?? ''))
-const formattedDate = computed(() => (updated.value ? formatDate(updated.value, locale.value) : ''))
+const formattedDate = computed(() =>
+  updated.value ? formatDateTime(updated.value, locale.value) : '',
+)
 
 function tagUrl(tag: string): string {
   const home = locale.value === 'en' ? '/en/' : '/'

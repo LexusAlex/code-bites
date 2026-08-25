@@ -21,6 +21,28 @@ function resolveBase(): string {
     : normalizeBase(name)
 }
 
+function timestampWithReferenceOffset(timestamp: number, reference: unknown): string {
+  const utc = new Date(timestamp).toISOString()
+  if (typeof reference !== 'string') return utc
+
+  const match = reference.match(/(Z|([+-])(\d{2}):(\d{2}))$/)
+  const offset = match?.[1]
+  if (!offset || offset === 'Z') return utc
+
+  const sign = match?.[2]
+  const rawHours = match?.[3]
+  const rawMinutes = match?.[4]
+  if (!sign || !rawHours || !rawMinutes) return utc
+
+  const hours = Number(rawHours)
+  const minutes = Number(rawMinutes)
+  if (hours > 23 || minutes > 59) return utc
+
+  const direction = sign === '-' ? -1 : 1
+  const offsetMilliseconds = direction * (hours * 60 + minutes) * 60_000
+  return new Date(timestamp + offsetMilliseconds).toISOString().replace(/Z$/, offset)
+}
+
 const siteBase = resolveBase()
 
 export default defineConfig({
@@ -36,6 +58,16 @@ export default defineConfig({
   transformPageData(pageData) {
     if (/(^|\/)snippets\/.+\.md$/.test(pageData.relativePath)) {
       pageData.frontmatter.aside = false
+      const gitUpdated = pageData.lastUpdated
+      const created = pageData.frontmatter.created
+      const updated =
+        typeof gitUpdated === 'number' && Number.isFinite(gitUpdated)
+          ? timestampWithReferenceOffset(gitUpdated, created)
+          : typeof created === 'string'
+            ? created
+            : undefined
+
+      if (updated) pageData.frontmatter.updated = updated
       delete pageData.lastUpdated
     }
   },
