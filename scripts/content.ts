@@ -24,6 +24,15 @@ const normalizedTokenSchema = z
   .regex(/^[\p{L}\p{N}][\p{L}\p{N}.+#-]*$/u, 'contains unsupported characters')
   .refine((value) => value === normalizeTag(value), 'must be normalized lowercase kebab-case')
 
+const createdTimestampSchema = z
+  .string()
+  .trim()
+  .regex(
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?(?:Z|[+-]\d{2}:\d{2})$/,
+    'must use ISO 8601 date-time with an explicit timezone',
+  )
+  .refine((value) => !Number.isNaN(Date.parse(value)), 'must be a valid date-time')
+
 export const snippetFrontmatterSchema = z.object({
   title: z.string().trim().min(1),
   description: z.string().trim().min(1),
@@ -53,6 +62,7 @@ export const snippetFrontmatterSchema = z.object({
         })
       }
     }),
+  created: createdTimestampSchema,
   updated: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must use YYYY-MM-DD').optional(),
 })
 
@@ -69,6 +79,7 @@ export interface NewSnippetInput {
   codeLanguage?: string
   risk?: SnippetRisk
   requirements?: SnippetRequirement[]
+  created?: string
   updated?: string
 }
 
@@ -182,6 +193,7 @@ function renderSnippet(frontmatter: SnippetFrontmatter, code: string, codeLangua
     tags,
     frontmatter.risk ? `risk: ${yamlString(frontmatter.risk)}` : undefined,
     requirements,
+    `created: ${yamlString(frontmatter.created)}`,
     frontmatter.updated ? `updated: ${yamlString(frontmatter.updated)}` : undefined,
     '---',
     '',
@@ -211,6 +223,7 @@ export async function createSnippetFile(
     tags: [...new Set(input.tags.map(normalizeTag).filter(Boolean))],
     risk: input.risk,
     requirements: [...new Set(input.requirements ?? [])],
+    created: input.created ?? new Date().toISOString(),
     updated: input.updated ?? new Date().toISOString().slice(0, 10),
   }
   const parsed = snippetFrontmatterSchema.safeParse(normalizedInput)

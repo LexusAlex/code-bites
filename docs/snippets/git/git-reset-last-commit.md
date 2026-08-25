@@ -10,6 +10,7 @@ tags:
   - "history"
   - "undo"
 risk: "destructive"
+created: "2026-08-23T16:40:01+03:00"
 updated: "2026-08-23"
 ---
 

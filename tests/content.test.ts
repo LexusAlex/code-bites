@@ -41,6 +41,7 @@ const validFrontmatter = [
   'tags:',
   '  - "javascript"',
   '  - "arrays"',
+  'created: "2026-08-20T14:35:12+03:00"',
   'updated: "2026-08-20"',
   '',
 ].join('\n')
@@ -114,6 +115,28 @@ describe('content validation', () => {
     expect(issues[0]?.message).toContain('tags')
   })
 
+  it('rejects frontmatter without a creation timestamp', async () => {
+    await writeSnippet(
+      'docs/snippets/javascript/unique-values.md',
+      validFrontmatter.replace('created: "2026-08-20T14:35:12+03:00"\n', ''),
+    )
+
+    const issues = await validateSnippetFiles(projectRoot)
+
+    expect(issues.some((issue) => issue.message.includes('created'))).toBe(true)
+  })
+
+  it('rejects a date-only creation value', async () => {
+    await writeSnippet(
+      'docs/snippets/javascript/unique-values.md',
+      validFrontmatter.replace('2026-08-20T14:35:12+03:00', '2026-08-20'),
+    )
+
+    const issues = await validateSnippetFiles(projectRoot)
+
+    expect(issues.some((issue) => issue.message.includes('created'))).toBe(true)
+  })
+
   it('reports duplicate locale and slug pairs', async () => {
     await writeSnippet('docs/snippets/javascript/unique-values.md', validFrontmatter)
     await writeSnippet('docs/snippets/typescript/unique-values.md', validFrontmatter)
@@ -154,6 +177,43 @@ describe('content authoring', () => {
     await expect(readFile(file, 'utf8')).resolves.toContain(
       'tags:\n  - "typescript"\n  - "data-structures"',
     )
+  })
+
+  it('writes an automatic creation timestamp', async () => {
+    const file = await createSnippetFile(projectRoot, {
+      slug: 'automatic-created-time',
+      locale: 'en',
+      title: 'Automatic creation time',
+      description: 'Records when a snippet is created.',
+      language: 'typescript',
+      tags: ['typescript'],
+      code: 'const created = true',
+      updated: '2026-08-25',
+    })
+
+    const content = await readFile(file, 'utf8')
+    const created = content.match(/^created: "([^"]+)"$/m)?.[1]
+
+    expect(created).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?(?:Z|[+-]\d{2}:\d{2})$/)
+    expect(Number.isNaN(Date.parse(created ?? ''))).toBe(false)
+  })
+
+  it('preserves a supplied creation timestamp', async () => {
+    const file = await createSnippetFile(projectRoot, {
+      slug: 'supplied-created-time',
+      locale: 'en',
+      title: 'Supplied creation time',
+      description: 'Keeps an explicitly supplied creation time.',
+      language: 'typescript',
+      tags: ['typescript'],
+      code: 'const created = true',
+      created: '2026-08-25T09:40:42+03:00',
+      updated: '2026-08-25',
+    })
+
+    const content = await readFile(file, 'utf8')
+
+    expect(content).toContain('created: "2026-08-25T09:40:42+03:00"')
   })
 
   it('serializes supplied semantic metadata', async () => {

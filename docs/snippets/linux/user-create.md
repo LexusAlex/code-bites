@@ -12,6 +12,7 @@ tags:
 requirements:
   - "sudo"
   - "linux"
+created: "2026-08-22T16:28:05+03:00"
 updated: "2026-08-22"
 ---
 

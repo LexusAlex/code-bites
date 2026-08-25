@@ -27,6 +27,8 @@ npm run snippet:new -- \
   --code-language ts
 ```
 
+On creation, the CLI automatically records a `created` frontmatter field with the exact date, time, and timezone. The `updated` field stores only the last modification date and is maintained separately.
+
 ## Organization
 
 The first catalog level is a language or technology. Independent dimensions use multiple tags, avoiding a deep category tree.
