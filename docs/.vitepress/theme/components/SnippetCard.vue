@@ -1,21 +1,19 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { withBase } from 'vitepress'
 
 import {
-  buildCodeLines,
-  compactHighlightedCode,
   formatDateTime,
   formatSnippetMetric,
   formatTechnologyName,
   getContentTags,
   getPreviewTags,
   getSnippetBadges,
-  isCommandLineSnippet,
   isLongCodePreview,
   type SnippetBadge,
   type SnippetSummary,
 } from '../catalog'
+import SnippetCodePreview from './SnippetCodePreview.vue'
 
 const props = defineProps<{
   snippet: SnippetSummary
@@ -30,9 +28,10 @@ const emit = defineEmits<{
 
 const copied = ref(false)
 const codeExpanded = ref(false)
-const copiedLineIndex = ref(-1)
+const wrapLines = ref(false)
+const codeReader = ref<HTMLDialogElement>()
+const fullscreenTrigger = ref<HTMLButtonElement>()
 let copiedTimer: ReturnType<typeof setTimeout> | undefined
-let copiedLineTimer: ReturnType<typeof setTimeout> | undefined
 
 const text = computed(() =>
   props.locale === 'ru'
@@ -44,6 +43,11 @@ const text = computed(() =>
         copiedCommand: 'Команда скопирована',
         expand: 'Развернуть код',
         collapse: 'Свернуть код',
+        fullscreen: 'Открыть на весь экран',
+        readerTitle: 'Полноэкранный просмотр кода',
+        closeReader: 'Закрыть просмотр кода',
+        wrapLines: 'Переносить строки',
+        noWrap: 'Не переносить строки',
         moreTags: 'Ещё тегов',
         created: 'Создано',
         badges: {
@@ -61,6 +65,11 @@ const text = computed(() =>
         copiedCommand: 'Command copied',
         expand: 'Expand code',
         collapse: 'Collapse code',
+        fullscreen: 'Open full screen',
+        readerTitle: 'Full-screen code view',
+        closeReader: 'Close code view',
+        wrapLines: 'Wrap lines',
+        noWrap: 'Do not wrap lines',
         moreTags: 'More tags',
         created: 'Created',
         badges: {
@@ -80,7 +89,7 @@ const contentTags = computed(() => getContentTags(props.snippet.tags, props.snip
 const previewTags = computed(() => getPreviewTags(props.snippet.tags, props.snippet.language))
 const hiddenTagCount = computed(() => contentTags.value.length - previewTags.value.length)
 const codePreviewId = computed(() => `code-preview-${props.locale}-${props.snippet.slug}`)
-const blockHighlightedCode = computed(() => compactHighlightedCode(props.snippet.highlightedCode))
+const codeReaderTitleId = computed(() => `code-reader-title-${props.locale}-${props.snippet.slug}`)
 const badges = computed(() =>
   getSnippetBadges(props.snippet).map((badge) => ({
     key: badge,
@@ -96,30 +105,6 @@ const metric = computed(() =>
   ),
 )
 
-interface RenderedCodeLine {
-  html: string
-  text: string
-  copyText: string
-  copyable: boolean
-}
-
-const codeLines = computed<RenderedCodeLine[] | null>(() => {
-  if (!isCommandLineSnippet(props.snippet.codeLanguage, props.snippet.language)) return null
-  if (!props.snippet.code) return null
-
-  const lines = buildCodeLines(props.snippet.code)
-  const highlightedLines = props.snippet.highlightedCode
-    ? props.snippet.highlightedCode.trimEnd().split(/\r?\n/)
-    : []
-
-  return lines.map((line, index) => ({
-    html: highlightedLines.length === lines.length ? (highlightedLines[index] ?? '') : '',
-    text: line.text,
-    copyText: line.copyText,
-    copyable: line.copyable,
-  }))
-})
-
 async function copyCode(): Promise<void> {
   if (!props.snippet.code || typeof navigator === 'undefined') return
 
@@ -131,20 +116,38 @@ async function copyCode(): Promise<void> {
   }, 1800)
 }
 
-async function copyLine(text: string, index: number): Promise<void> {
-  if (!text || typeof navigator === 'undefined') return
+function openCodeReader(): void {
+  if (!codeReader.value || codeReader.value.open) return
 
-  await navigator.clipboard.writeText(text)
-  copiedLineIndex.value = index
-  if (copiedLineTimer) clearTimeout(copiedLineTimer)
-  copiedLineTimer = setTimeout(() => {
-    copiedLineIndex.value = -1
-  }, 1800)
+  wrapLines.value = false
+  codeReader.value.showModal()
+  document.documentElement.classList.add('code-reader-is-open')
 }
+
+function closeCodeReader(): void {
+  codeReader.value?.close()
+}
+
+function handleReaderClosed(): void {
+  document.documentElement.classList.remove('code-reader-is-open')
+  fullscreenTrigger.value?.focus()
+}
+
+function handleKeydown(event: KeyboardEvent): void {
+  if (event.key !== 'Escape' || !codeReader.value?.open) return
+
+  event.preventDefault()
+  closeCodeReader()
+}
+
+onMounted(() => window.addEventListener('keydown', handleKeydown))
 
 onUnmounted(() => {
   if (copiedTimer) clearTimeout(copiedTimer)
-  if (copiedLineTimer) clearTimeout(copiedLineTimer)
+  window.removeEventListener('keydown', handleKeydown)
+  if (typeof document !== 'undefined') {
+    document.documentElement.classList.remove('code-reader-is-open')
+  }
 })
 
 interface Segment {
@@ -249,11 +252,27 @@ function highlightSegments(value: string, terms: string[] | undefined): Segment[
               class="code-expand-button"
               :aria-expanded="codeExpanded"
               :aria-controls="codePreviewId"
+              :aria-label="codeExpanded ? text.collapse : text.expand"
+              :title="codeExpanded ? text.collapse : text.expand"
               @click="codeExpanded = !codeExpanded"
             >
-              {{ codeExpanded ? text.collapse : text.expand }}
+              <span class="code-expand-button__label">{{
+                codeExpanded ? text.collapse : text.expand
+              }}</span>
               <svg aria-hidden="true" viewBox="0 0 20 20">
                 <path d="m6 8 4 4 4-4" />
+              </svg>
+            </button>
+            <button
+              ref="fullscreenTrigger"
+              type="button"
+              class="code-fullscreen-button"
+              :aria-label="text.fullscreen"
+              :title="text.fullscreen"
+              @click="openCodeReader"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" />
               </svg>
             </button>
             <button
@@ -263,41 +282,25 @@ function highlightSegments(value: string, terms: string[] | undefined): Segment[
               :aria-label="copied ? text.copied : text.copy"
               @click="copyCode"
             >
-              <svg aria-hidden="true" viewBox="0 0 24 24">
+              <svg v-if="!copied" aria-hidden="true" viewBox="0 0 24 24">
                 <path d="M8 7.5A2.5 2.5 0 0 1 10.5 5h7A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 8 16.5v-9Z" />
                 <path d="M15.5 5V4.5A2.5 2.5 0 0 0 13 2H6.5A2.5 2.5 0 0 0 4 4.5V13a2.5 2.5 0 0 0 2.5 2.5H8" />
               </svg>
+              <svg v-else aria-hidden="true" viewBox="0 0 24 24"><path d="m5 13 4 4L19 7" /></svg>
               <span aria-live="polite">{{ copied ? text.copied : text.copy }}</span>
             </button>
           </div>
         </div>
-        <div
-          :id="codePreviewId"
-          class="snippet-card__code-viewport"
-          :class="{
-            'is-clipped': hasLongCode && !codeExpanded,
-            'is-expanded': codeExpanded,
-          }"
-        >
-          <pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code
-            v-if="codeLines"
-          ><template v-for="(line, index) in codeLines" :key="index"><span class="code-line"><span
-            v-if="line.html"
-            class="code-line__content"
-            v-html="line.html"
-          ></span><span v-else class="code-line__content">{{ line.text }}</span><button
-            v-if="line.copyable"
-            type="button"
-            class="code-line__copy"
-            :class="{ 'code-line__copy--copied': copiedLineIndex === index }"
-            :aria-label="copiedLineIndex === index ? text.copiedCommand : text.copyCommand"
-            :title="copiedLineIndex === index ? text.copiedCommand : text.copyCommand"
-            @click="copyLine(line.copyText, index)"
-          ><svg v-if="copiedLineIndex !== index" aria-hidden="true" viewBox="0 0 24 24"><path d="M8 7.5A2.5 2.5 0 0 1 10.5 5h7A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 8 16.5v-9Z" /><path d="M15.5 5V4.5A2.5 2.5 0 0 0 13 2H6.5A2.5 2.5 0 0 0 4 4.5V13a2.5 2.5 0 0 0 2.5 2.5H8" /></svg><svg v-else aria-hidden="true" viewBox="0 0 24 24"><path d="m5 13 4 4L19 7" /></svg></button></span>{{ '\n' }}</template></code><code
-            v-else-if="blockHighlightedCode"
-            v-html="blockHighlightedCode"
-          ></code><code v-else>{{ snippet.code }}</code></pre>
-        </div>
+        <SnippetCodePreview
+          :code="snippet.code"
+          :highlighted-code="snippet.highlightedCode"
+          :code-language="snippet.codeLanguage"
+          :language="snippet.language"
+          :preview-id="codePreviewId"
+          :clipped="hasLongCode && !codeExpanded"
+          :copy-command-label="text.copyCommand"
+          :copied-command-label="text.copiedCommand"
+        />
       </div>
     </div>
 
@@ -338,5 +341,76 @@ function highlightSegments(value: string, terms: string[] | undefined): Segment[
         </svg>
       </a>
     </footer>
+
+    <Teleport to="body">
+      <dialog
+        ref="codeReader"
+        class="code-reader"
+        :aria-labelledby="codeReaderTitleId"
+        @close="handleReaderClosed"
+      >
+        <div class="code-reader__shell">
+          <header class="code-reader__toolbar">
+            <div class="code-reader__identity">
+              <span class="snippet-card__code-language">{{
+                snippet.codeLanguage || snippet.language
+              }}</span>
+              <h2 :id="codeReaderTitleId">
+                <span class="sr-only">{{ text.readerTitle }}: </span>{{ snippet.title }}
+              </h2>
+            </div>
+            <div class="code-reader__actions">
+              <button
+                type="button"
+                class="code-reader__action code-wrap-button"
+                :aria-pressed="wrapLines"
+                :aria-label="wrapLines ? text.noWrap : text.wrapLines"
+                :title="wrapLines ? text.noWrap : text.wrapLines"
+                @click="wrapLines = !wrapLines"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M4 6h16M4 11h12a4 4 0 0 1 0 8h-3m3-3-3 3 3 3M4 16h5" />
+                </svg>
+                <span>{{ wrapLines ? text.noWrap : text.wrapLines }}</span>
+              </button>
+              <button
+                type="button"
+                class="code-reader__action copy-button"
+                :class="{ 'copy-button--copied': copied }"
+                :aria-label="copied ? text.copied : text.copy"
+                @click="copyCode"
+              >
+                <svg v-if="!copied" aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M8 7.5A2.5 2.5 0 0 1 10.5 5h7A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 8 16.5v-9Z" />
+                  <path d="M15.5 5V4.5A2.5 2.5 0 0 0 13 2H6.5A2.5 2.5 0 0 0 4 4.5V13a2.5 2.5 0 0 0 2.5 2.5H8" />
+                </svg>
+                <svg v-else aria-hidden="true" viewBox="0 0 24 24"><path d="m5 13 4 4L19 7" /></svg>
+                <span aria-live="polite">{{ copied ? text.copied : text.copy }}</span>
+              </button>
+              <button
+                type="button"
+                class="code-reader__action code-reader__close"
+                :aria-label="text.closeReader"
+                :title="text.closeReader"
+                @click="closeCodeReader"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" /></svg>
+              </button>
+            </div>
+          </header>
+          <div class="code-reader__content">
+            <SnippetCodePreview
+              :code="snippet.code"
+              :highlighted-code="snippet.highlightedCode"
+              :code-language="snippet.codeLanguage"
+              :language="snippet.language"
+              :wrap-lines="wrapLines"
+              :copy-command-label="text.copyCommand"
+              :copied-command-label="text.copiedCommand"
+            />
+          </div>
+        </div>
+      </dialog>
+    </Teleport>
   </article>
 </template>
