@@ -9,9 +9,13 @@ tags:
   - "linux"
   - "configuration"
   - "cli"
+  - "web-server"
+  - "symlink"
+  - "systemd"
 requirements:
   - "sudo"
   - "linux"
+risk: "caution"
 created: "2026-08-30T10:29:14+03:00"
 updated: "2026-08-30"
 ---

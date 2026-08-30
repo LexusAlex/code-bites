@@ -10,6 +10,7 @@ tags:
   - "permissions"
   - "filesystem"
   - "cli"
+  - "ownership"
 requirements:
   - "linux"
 risk: "caution"

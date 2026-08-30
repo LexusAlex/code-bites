@@ -12,6 +12,7 @@ tags:
   - "cli"
 requirements:
   - "linux"
+  - "sudo"
 risk: "caution"
 created: "2026-08-30T10:32:49+03:00"
 updated: "2026-08-30"

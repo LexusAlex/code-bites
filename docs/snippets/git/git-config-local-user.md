@@ -8,6 +8,8 @@ tags:
   - "git"
   - "config"
   - "identity"
+  - "users"
+  - "cli"
 created: "2026-08-30T12:29:31+03:00"
 updated: "2026-08-30"
 ---

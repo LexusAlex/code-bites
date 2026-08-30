@@ -10,6 +10,8 @@ tags:
   - "ed25519"
   - "security"
   - "cli"
+  - "keys"
+  - "keygen"
 requirements:
   - "linux"
 created: "2026-08-30T12:17:56+03:00"

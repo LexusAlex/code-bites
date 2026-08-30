@@ -1,6 +1,6 @@
 ---
-title: "Создать пользователя в linux"
-description: "Создание пользователя Linux с домашним каталогом и оболочкой bash."
+title: "Создать пользователя в Linux"
+description: "Создание пользователя Linux командой useradd с домашним каталогом и оболочкой bash."
 slug: "user-create"
 locale: "ru"
 language: "linux"
@@ -9,6 +9,8 @@ tags:
   - "users"
   - "cli"
   - "create"
+  - "useradd"
+  - "passwd"
 requirements:
   - "sudo"
   - "linux"
@@ -16,7 +18,7 @@ created: "2026-08-22T16:28:05+03:00"
 updated: "2026-08-22"
 ---
 
-# Создать пользователя
+# Создать пользователя в Linux
 
 Создаёт пользователя с домашним каталогом, оболочкой bash и комментарием, затем задаёт пароль.
 

@@ -1,5 +1,5 @@
 ---
-title: "Запустить сайт в Apache"
+title: "Включить сайт в Apache"
 description: "Включение конфигурации сайта, проверка синтаксиса и безопасная перезагрузка Apache."
 slug: "apache-enable-site"
 locale: "ru"
@@ -10,6 +10,8 @@ tags:
   - "a2ensite"
   - "web-server"
   - "cli"
+  - "configuration"
+  - "systemd"
 requirements:
   - "linux"
   - "sudo"
@@ -18,7 +20,7 @@ created: "2026-08-30T10:54:37+03:00"
 updated: "2026-08-30"
 ---
 
-# Запустить сайт в Apache
+# Включить сайт в Apache
 
 Включает виртуальный хост `mysite.conf`, проверяет конфигурацию Apache и применяет изменения без полной остановки сервера:
 
