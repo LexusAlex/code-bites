@@ -1,5 +1,5 @@
 services:
-  codebites:
+  bytecode:
     build:
       context: .
       dockerfile: Dockerfile

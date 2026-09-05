@@ -1,6 +1,6 @@
 ---
 layout: home
-title: Кодобайты
+title: БайтКод
 titleTemplate: false
 ---
 

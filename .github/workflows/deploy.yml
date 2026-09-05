@@ -1,4 +1,4 @@
-name: Deploy CodeBites to GitHub Pages
+name: Deploy ByteCode to GitHub Pages
 
 on:
   push:

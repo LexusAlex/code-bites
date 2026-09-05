@@ -1,9 +1,9 @@
 ---
-title: How to add a CodeBite
-description: The Git and CLI workflow for adding, translating, and removing CodeBites.
+title: How to add a ByteCode
+description: The Git and CLI workflow for adding, translating, and removing ByteCodes.
 ---
 
-# How to add a CodeBite
+# How to add a ByteCode
 
 Content lives in Git as Markdown. Russian pages are stored in `docs/snippets`; English pages live in `docs/en/snippets`.
 

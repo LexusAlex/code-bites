@@ -1,6 +1,6 @@
 ---
 layout: home
-title: CodeBites
+title: ByteCode
 titleTemplate: false
 ---
 

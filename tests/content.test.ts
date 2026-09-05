@@ -15,7 +15,7 @@ import {
 let projectRoot: string
 
 beforeEach(async () => {
-  projectRoot = await mkdtemp(join(tmpdir(), 'codebites-content-'))
+  projectRoot = await mkdtemp(join(tmpdir(), 'bytecode-content-'))
 })
 
 afterEach(async () => {

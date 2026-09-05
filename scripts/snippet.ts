@@ -186,7 +186,7 @@ async function validateCommand(): Promise<void> {
 }
 
 function printHelp(): void {
-  output.write(`CodeBites snippet CLI
+  output.write(`ByteCode snippet CLI
 
 Commands:
   npm run snippet:new -- [--locale ru|en] [--slug value] [--code-file path]

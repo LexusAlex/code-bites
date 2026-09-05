@@ -49,8 +49,8 @@ describe('snippet page metadata', () => {
     const pageData = {
       filePath: 'docs/contributing.md',
       relativePath: 'contributing.md',
-      title: 'Как добавить кодобайт',
-      description: 'Git/CLI-процесс добавления кодобайтов.',
+      title: 'Как добавить байткод',
+      description: 'Git/CLI-процесс добавления байткодов.',
       headers: [],
       frontmatter: {},
       lastUpdated: Date.parse('2026-08-25T17:09:56+03:00'),

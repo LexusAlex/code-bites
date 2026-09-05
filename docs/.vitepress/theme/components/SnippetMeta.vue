@@ -22,7 +22,7 @@ const tags = computed<string[]>(() =>
 const contentTags = computed(() => getContentTags(tags.value, String(frontmatter.value.language)))
 const locale = computed<SnippetLocale>(() => (lang.value.startsWith('en') ? 'en' : 'ru'))
 const catalogUrl = computed(() => withBase(locale.value === 'en' ? '/en/' : '/'))
-const catalogLabel = computed(() => (locale.value === 'en' ? 'All CodeBites' : 'Все кодобайты'))
+const catalogLabel = computed(() => (locale.value === 'en' ? 'All ByteCodes' : 'Все байткоды'))
 const updatedLabel = computed(() => (locale.value === 'en' ? 'Updated' : 'Обновлено'))
 const risk = computed<SnippetRisk | undefined>(() => {
   const value = String(frontmatter.value.risk ?? '')

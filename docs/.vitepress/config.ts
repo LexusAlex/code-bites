@@ -46,7 +46,7 @@ function timestampWithReferenceOffset(timestamp: number, reference: unknown): st
 const siteBase = resolveBase()
 
 export default defineConfig({
-  title: 'CodeBites',
+  title: 'ByteCode',
   description: 'Короткие проверенные решения для разработчиков',
   base: siteBase,
   head: [
@@ -79,11 +79,11 @@ export default defineConfig({
     root: {
       label: 'Русский',
       lang: 'ru-RU',
-      title: 'CodeBites',
+      title: 'ByteCode',
       description: 'Короткие проверенные решения для разработчиков',
       themeConfig: {
         nav: [
-          { text: 'Кодобайты', link: '/' },
+          { text: 'БайтКод', link: '/' },
           { text: 'Как добавить', link: '/contributing' },
         ],
         outline: { label: 'На странице' },
@@ -98,7 +98,7 @@ export default defineConfig({
         skipToContentLabel: 'Перейти к содержимому',
         notFound: {
           title: 'Страница не найдена',
-          quote: 'Возможно, кодобайт был перемещён или удалён.',
+          quote: 'Возможно, байткод был перемещён или удалён.',
           linkLabel: 'Вернуться к каталогу',
           linkText: 'Вернуться к каталогу',
         },
@@ -108,11 +108,11 @@ export default defineConfig({
       label: 'English',
       lang: 'en-US',
       link: '/en/',
-      title: 'CodeBites',
+      title: 'ByteCode',
       description: 'Short, proven solutions for developers',
       themeConfig: {
         nav: [
-          { text: 'CodeBites', link: '/en/' },
+          { text: 'ByteCode', link: '/en/' },
           { text: 'How to contribute', link: '/en/contributing' },
         ],
         outline: { label: 'On this page' },
@@ -127,7 +127,7 @@ export default defineConfig({
         skipToContentLabel: 'Skip to content',
         notFound: {
           title: 'Page not found',
-          quote: 'The CodeBite may have been moved or removed.',
+          quote: 'The ByteCode may have been moved or removed.',
           linkLabel: 'Return to catalog',
           linkText: 'Return to catalog',
         },
@@ -138,7 +138,7 @@ export default defineConfig({
     logo: {
       light: '/logo-light.svg',
       dark: '/logo-dark.svg',
-      alt: 'CodeBites',
+      alt: 'ByteCode',
     },
     search: {
       provider: 'local',
@@ -155,7 +155,7 @@ export default defineConfig({
             translations: {
               button: {
                 buttonText: 'Поиск',
-                buttonAriaLabel: 'Поиск по кодобайтам',
+                buttonAriaLabel: 'Поиск по байткодам',
               },
               modal: {
                 displayDetails: 'Показать подробности',
@@ -178,7 +178,7 @@ export default defineConfig({
             translations: {
               button: {
                 buttonText: 'Search',
-                buttonAriaLabel: 'Search CodeBites',
+                buttonAriaLabel: 'Search ByteCodes',
               },
               modal: {
                 displayDetails: 'Display details',
