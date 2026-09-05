@@ -112,8 +112,12 @@ function creationTime(snippet: SnippetSummary): number | undefined {
   return Number.isNaN(timestamp) ? undefined : timestamp
 }
 
-export function sortSnippets(snippets: SnippetSummary[], mode: SortMode): SnippetSummary[] {
-  return [...snippets].sort((left, right) => {
+export function sortSnippets(
+  snippets: SnippetSummary[],
+  mode: SortMode,
+  relevance?: Map<string, number>,
+): SnippetSummary[] {
+  const comparator = (left: SnippetSummary, right: SnippetSummary): number => {
     if (mode === 'alpha') return left.title.localeCompare(right.title, 'en')
 
     const leftCreated = creationTime(left)
@@ -122,6 +126,17 @@ export function sortSnippets(snippets: SnippetSummary[], mode: SortMode): Snippe
     if (leftCreated === undefined) return 1
     if (rightCreated === undefined) return -1
     return rightCreated - leftCreated
+  }
+
+  if (!relevance || relevance.size === 0) return [...snippets].sort(comparator)
+
+  return [...snippets].sort((left, right) => {
+    const leftScore = relevance.get(left.url)
+    const rightScore = relevance.get(right.url)
+    if (leftScore === rightScore) return comparator(left, right)
+    if (leftScore === undefined) return 1
+    if (rightScore === undefined) return -1
+    return rightScore - leftScore
   })
 }
 
@@ -147,6 +162,23 @@ export function findMatchTerms(
     terms.set(url, [...(terms.get(url) ?? []), ...match])
   }
   return terms
+}
+
+export function createSearchScores(
+  query: string,
+  index: SnippetSearchIndex,
+): Map<string, number> {
+  const trimmed = query.trim()
+  if (!trimmed) return new Map()
+
+  const scores = new Map<string, number>()
+  for (const result of index.search(trimmed)) {
+    const url = String(result.id)
+    const score = result.score
+    const best = scores.get(url)
+    if (best === undefined || score > best) scores.set(url, score)
+  }
+  return scores
 }
 
 function normalize(value: string): string {
@@ -204,7 +236,12 @@ export function getSnippetBadges(
   return badges
 }
 
-function formatRussianCount(count: number, one: string, few: string, many: string): string {
+export function formatPluralCount(
+  count: number,
+  one: string,
+  few: string,
+  many: string,
+): string {
   const mod100 = count % 100
   const mod10 = count % 10
   const noun =
@@ -237,8 +274,8 @@ export function formatSnippetMetric(
 
   if (locale === 'ru') {
     return kind === 'command'
-      ? formatRussianCount(count, 'команда', 'команды', 'команд')
-      : formatRussianCount(count, 'строка', 'строки', 'строк')
+      ? formatPluralCount(count, 'команда', 'команды', 'команд')
+      : formatPluralCount(count, 'строка', 'строки', 'строк')
   }
 
   return `${count} ${kind}${count === 1 ? '' : 's'}`
@@ -307,12 +344,14 @@ export function filterSnippets(
   snippets: SnippetSummary[],
   filters: CatalogFilters,
   index?: SnippetSearchIndex,
+  scores?: Map<string, number>,
 ): SnippetSummary[] {
   const query = filters.query?.trim() ?? ''
   const language = normalize(filters.language ?? '')
   const tags = (filters.tags ?? []).map(normalize).filter(Boolean)
   const matchingUrls = query
-    ? new Set(
+    ? scores ??
+      new Set(
         (index ?? createSnippetSearchIndex(snippets))
           .search(query)
           .map((result) => String(result.id)),

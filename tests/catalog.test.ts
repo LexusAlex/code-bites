@@ -5,11 +5,13 @@ import {
   buildCodeLines,
   collectTags,
   compactHighlightedCode,
+  createSearchScores,
   createSnippetSearchIndex,
   filterSnippets,
   findMatchTerms,
   formatDate,
   formatDateTime,
+  formatPluralCount,
   formatSnippetMetric,
   formatTechnologyName,
   getContentTags,
@@ -432,5 +434,92 @@ describe('findMatchTerms', () => {
     const index = createSnippetSearchIndex(snippets)
 
     expect(findMatchTerms('   ', index).size).toBe(0)
+  })
+})
+
+describe('createSearchScores', () => {
+  it('returns an empty map for a blank query', () => {
+    const index = createSnippetSearchIndex(snippets)
+
+    expect(createSearchScores('   ', index).size).toBe(0)
+  })
+
+  it('maps matched URLs to positive scores', () => {
+    const index = createSnippetSearchIndex(snippets)
+
+    const scores = createSearchScores('debounce', index)
+
+    expect(scores.get('/snippets/typescript/debounce-function')).toBeGreaterThan(0)
+    expect(scores.has('/snippets/javascript/array-chunks')).toBe(false)
+  })
+})
+
+describe('search relevance', () => {
+  const titleMatch: SnippetSummary = {
+    ...snippets[0]!,
+    slug: 'title-match',
+    title: 'Debounce для функции',
+    description: 'Старый, но точно по теме',
+    code: 'const a = 1',
+    url: '/snippets/javascript/title-match',
+    created: '2026-08-01T10:00:00+03:00',
+  }
+  const codeMatch: SnippetSummary = {
+    ...snippets[0]!,
+    slug: 'code-match',
+    title: 'Совсем другое название',
+    description: 'Совсем другое описание',
+    code: 'export function debounce() {}',
+    url: '/snippets/javascript/code-match',
+    created: '2026-08-22T10:00:00+03:00',
+  }
+
+  it('ranks search results by relevance before creation time', () => {
+    const ranked = [codeMatch, titleMatch]
+    const index = createSnippetSearchIndex(ranked)
+    const scores = createSearchScores('debounce', index)
+
+    const result = sortSnippets(
+      filterSnippets(ranked, { locale: 'ru', query: 'debounce' }, index, scores),
+      'new',
+      scores,
+    )
+
+    expect(result.map((snippet) => snippet.slug)).toEqual(['title-match', 'code-match'])
+  })
+
+  it('keeps the chosen sort mode when search is empty', () => {
+    const result = sortSnippets([codeMatch, titleMatch], 'new')
+
+    expect(result.map((snippet) => snippet.slug)).toEqual(['code-match', 'title-match'])
+  })
+
+  it('falls back to the sort mode comparator for equal relevance', () => {
+    const sameA: SnippetSummary = { ...titleMatch, url: '/snippets/javascript/same-a', created: '2026-08-01T10:00:00+03:00' }
+    const sameB: SnippetSummary = { ...titleMatch, url: '/snippets/javascript/same-b', created: '2026-08-22T10:00:00+03:00' }
+    const index = createSnippetSearchIndex([sameA, sameB])
+    const scores = createSearchScores('debounce', index)
+
+    expect(sortSnippets([sameA, sameB], 'new', scores).map((s) => s.url)).toEqual([
+      '/snippets/javascript/same-b',
+      '/snippets/javascript/same-a',
+    ])
+  })
+
+  it('keeps snippets missing from the relevance map at the end', () => {
+    const index = createSnippetSearchIndex([titleMatch])
+    const scores = createSearchScores('debounce', index)
+
+    const result = sortSnippets([codeMatch, titleMatch], 'new', scores)
+
+    expect(result.map((snippet) => snippet.slug)).toEqual(['title-match', 'code-match'])
+  })
+})
+
+describe('formatPluralCount', () => {
+  it('uses Russian plural forms', () => {
+    expect(formatPluralCount(1, 'байткод', 'байткода', 'байткодов')).toBe('1 байткод')
+    expect(formatPluralCount(3, 'байткод', 'байткода', 'байткодов')).toBe('3 байткода')
+    expect(formatPluralCount(12, 'байткод', 'байткода', 'байткодов')).toBe('12 байткодов')
   })
 })

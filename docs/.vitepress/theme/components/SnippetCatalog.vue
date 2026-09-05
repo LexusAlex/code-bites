@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRouter, withBase } from 'vitepress'
 
 import {
   collectTags,
+  createSearchScores,
   createSnippetSearchIndex,
   filterSnippets,
   findMatchTerms,
+  formatPluralCount,
   formatTechnologyName,
   getVisibleSnippets,
   sortSnippets,
@@ -20,6 +23,7 @@ const props = defineProps<{
   snippets: SnippetSummary[]
 }>()
 
+const router = useRouter()
 const query = ref('')
 const language = ref('')
 const selectedTags = ref<string[]>([])
@@ -33,7 +37,7 @@ const hasMounted = ref(false)
 const text = computed(() =>
   props.locale === 'ru'
     ? {
-        catalogTitle: 'Кодобайты',
+        catalogTitle: 'БайтКод',
         search: 'Найти код…',
         searchLabel: 'Поиск по каталогу',
         clear: 'Очистить поиск',
@@ -49,13 +53,13 @@ const text = computed(() =>
         reset: 'Сбросить',
         found: 'Найдено',
         of: 'из',
-        snippets: 'кодобайтов',
+        snippets: 'байткодов',
         loadMore: 'Показать ещё',
         emptyTitle: 'Ничего не найдено',
         emptyForText: 'для',
       }
     : {
-        catalogTitle: 'CodeBites',
+        catalogTitle: 'ByteCode',
         search: 'Find code…',
         searchLabel: 'Search the catalog',
         clear: 'Clear search',
@@ -71,9 +75,9 @@ const text = computed(() =>
         reset: 'Reset',
         found: 'Found',
         of: 'of',
-        snippets: 'CodeBites',
+        snippets: 'ByteCodes',
         loadMore: 'Show more',
-        emptyTitle: 'No CodeBites found',
+        emptyTitle: 'No ByteCodes found',
         emptyForText: 'for',
       },
 )
@@ -88,6 +92,9 @@ const languages = computed(() =>
     left.localeCompare(right, 'en'),
   ),
 )
+const searchScores = computed(() =>
+  query.value.trim() ? createSearchScores(query.value, searchIndex.value) : undefined,
+)
 const filteredSnippets = computed(() =>
   sortSnippets(
     filterSnippets(
@@ -99,8 +106,10 @@ const filteredSnippets = computed(() =>
         tags: selectedTags.value,
       },
       searchIndex.value,
+      searchScores.value,
     ),
     sortMode.value,
+    searchScores.value,
   ),
 )
 const visibleSnippets = computed(() =>
@@ -108,6 +117,19 @@ const visibleSnippets = computed(() =>
 )
 const hasMoreSnippets = computed(
   () => visibleSnippets.value.length < filteredSnippets.value.length,
+)
+const hiddenSnippetCount = computed(
+  () => filteredSnippets.value.length - visibleSnippets.value.length,
+)
+const loadMoreLabel = computed(() =>
+  props.locale === 'ru'
+    ? `Показать ещё ${formatPluralCount(
+        hiddenSnippetCount.value,
+        'байткод',
+        'байткода',
+        'байткодов',
+      )}`
+    : `Show ${hiddenSnippetCount.value} more ByteCodes`,
 )
 const matchTerms = computed(() =>
   query.value.trim() ? findMatchTerms(query.value, searchIndex.value) : new Map<string, string[]>(),
@@ -147,6 +169,11 @@ function showMoreSnippets(): void {
   visibleBatchCount.value += 1
 }
 
+function openFirstResult(): void {
+  const first = filteredSnippets.value[0]
+  if (first) router.go(withBase(first.url))
+}
+
 function readFiltersFromUrl(): void {
   const params = new URLSearchParams(window.location.search)
   query.value = params.get('q') ?? ''
@@ -175,7 +202,12 @@ function writeFiltersToUrl(): void {
 
 function handleShortcut(event: KeyboardEvent): void {
   const target = event.target as HTMLElement | null
-  if (event.key !== '/' || target?.matches('input, textarea, select, [contenteditable]')) return
+  if (target?.matches('input, textarea, select, [contenteditable]')) return
+
+  const isSlash = event.key === '/'
+  const isCommandK =
+    (event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'k'
+  if (!isSlash && !isCommandK) return
 
   event.preventDefault()
   searchInput.value?.focus()
@@ -216,6 +248,7 @@ watch(
           type="search"
           :aria-label="text.searchLabel"
           :placeholder="text.search"
+          @keydown.enter.prevent="openFirstResult"
           @keydown.escape="clearSearch"
         />
         <button
@@ -340,8 +373,9 @@ watch(
         </div>
 
         <div v-if="hasMoreSnippets" class="catalog-load-more">
-          <button type="button" class="load-more-button" @click="showMoreSnippets">
+          <button type="button" class="load-more-button" :aria-label="loadMoreLabel" @click="showMoreSnippets">
             {{ text.loadMore }}
+            <span v-if="hiddenSnippetCount" class="load-more-button__count">{{ hiddenSnippetCount }}</span>
           </button>
         </div>
       </template>
